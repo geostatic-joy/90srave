@@ -421,6 +421,72 @@ check(
   `music ends at ${(overlayLongDiff / sr).toFixed(3)}s`,
 )
 
+// --------------------------------------------------------- mixed-in endings
+
+section('Mixing over the music')
+async function loadCustomSample() {
+  await page.check('#scratch-enabled')
+  await page.setInputFiles('#scratch-file-input', fixtures.short)
+  await page.waitForFunction(
+    () => document.querySelector('#scratch-file-name').textContent === 'short-2s.wav',
+    null,
+    { timeout: 60_000 },
+  )
+}
+
+const mixed = await renderWav('analysis-mix.wav', async () => {
+  await loadCustomSample()
+  await page.check('input[name="scratch-placement"][value="mix"]')
+  check('mixing leaves the fade-out available', !(await page.locator('#fade-out-enabled').isDisabled()))
+})
+const customOverlay = await renderWav('analysis-custom-overlay.wav', async () => {
+  await loadCustomSample()
+  await page.check('input[name="scratch-placement"][value="overlay"]')
+})
+
+check(
+  'a mixed-in sample keeps the clip length',
+  Math.abs(mixed.duration - 20) <= 0.05,
+  `${mixed.duration.toFixed(4)}s`,
+)
+
+const sfxStart = Math.round((20 - 2.5) * sr)
+let mixHeadMatches = true
+for (let i = 0; i < sfxStart - 441; i += 97) {
+  if (Math.abs(mixed.left[i] - clean.left[i]) > 0.002) {
+    mixHeadMatches = false
+    break
+  }
+}
+check('mixing leaves the music before the sample untouched', mixHeadMatches)
+
+let mixTailDiff = 0
+for (let i = sfxStart; i < mixed.frames; i++) mixTailDiff += Math.abs(mixed.left[i] - clean.left[i])
+check(
+  'the mixed-in sample is audible',
+  mixTailDiff / (mixed.frames - sfxStart) > 0.05,
+  `mean |diff| ${(mixTailDiff / (mixed.frames - sfxStart)).toFixed(4)}`,
+)
+
+const correlate = (a, b, from, to) => {
+  let ab = 0
+  let aa = 0
+  let bb = 0
+  for (let i = from; i < to; i++) {
+    ab += a[i] * b[i]
+    aa += a[i] * a[i]
+    bb += b[i] * b[i]
+  }
+  return ab / Math.max(1e-9, Math.sqrt(aa * bb))
+}
+const mixCorr = correlate(mixed.left, clean.left, sfxStart, mixed.frames)
+const overlayCorr = correlate(customOverlay.left, clean.left, sfxStart, customOverlay.frames)
+check(
+  'the music survives underneath a mix but not under an overlay',
+  mixCorr > 0.5 && mixCorr > overlayCorr * 2,
+  `mix ${mixCorr.toFixed(3)} vs overlay ${overlayCorr.toFixed(3)}`,
+)
+
 // ------------------------------------------------------------ scratch styles
 
 section('Scratch styles')

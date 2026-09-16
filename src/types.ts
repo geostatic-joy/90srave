@@ -1,6 +1,6 @@
 import { DEFAULT_SCRATCH_LENGTH, DEFAULT_SCRATCH_STYLE, type ScratchStyleId } from './audio/scratch'
 
-export type ScratchPlacement = 'overlay' | 'append'
+export type ScratchPlacement = 'overlay' | 'append' | 'mix'
 export type ScratchSource = 'synth' | 'custom'
 export type ExportFormat = 'mp3' | 'flac' | 'wav'
 export type Bitrate = 128 | 192 | 320
