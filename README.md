@@ -65,8 +65,8 @@ npm run preview   # serve the production build
 
 **Polish and export**
 
-- Optional fade-in (0–3s), fade-out (switched off while the scratch is the ending), and
-  peak normalization.
+- Optional fade-in (0–3s), fade-out (switched off while the scratch is the ending, but
+  available with a mix), and peak normalization.
 - MP3 (128/192/320 kbps), FLAC, or WAV. Sample rate and channel count are preserved;
   more than two channels are folded down to stereo.
 - Filename defaults to `{original}_snippet_{mm-ss}_{length}s.{ext}` and is editable.
