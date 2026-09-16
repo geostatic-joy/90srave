@@ -1,0 +1,11 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.vite
+
+# vendored at install time by scripts/vendor-flac.mjs
+public/flac/libflac.*
+tests/.fixtures
+tests/.out
