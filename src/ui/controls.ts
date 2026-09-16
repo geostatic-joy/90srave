@@ -1,3 +1,4 @@
+import { SCRATCH_STYLE_LIST, type ScratchStyleId } from '../audio/scratch'
 import type { AppState, Bitrate, ExportFormat, ScratchPlacement, ScratchSource } from '../types'
 import { byId, setStatus } from '../util/dom'
 
@@ -5,6 +6,7 @@ export interface ControlsHandlers {
   onScratchEnabled: (value: boolean) => void
   onScratchPlacement: (value: ScratchPlacement) => void
   onScratchSource: (value: ScratchSource) => void
+  onScratchStyle: (value: ScratchStyleId) => void
   onScratchFile: (file: File) => void
   onScratchLength: (value: number) => void
   onScratchVolume: (value: number) => void
@@ -21,6 +23,8 @@ export interface ControlsHandlers {
 export class ControlsPanel {
   private scratchEnabled = byId<HTMLInputElement>('scratch-enabled')
   private scratchOptions = byId<HTMLElement>('scratch-options')
+  private scratchStyle = byId<HTMLSelectElement>('scratch-style')
+  private scratchStyleHint = byId<HTMLElement>('scratch-style-hint')
   private scratchFileButton = byId<HTMLButtonElement>('scratch-file-button')
   private scratchFileInput = byId<HTMLInputElement>('scratch-file-input')
   private scratchFileName = byId<HTMLElement>('scratch-file-name')
@@ -60,6 +64,16 @@ export class ControlsPanel {
         if (radio.checked) handlers.onScratchSource(radio.value as ScratchSource)
       })
     }
+
+    for (const style of SCRATCH_STYLE_LIST) {
+      const option = document.createElement('option')
+      option.value = style.id
+      option.textContent = style.label
+      this.scratchStyle.appendChild(option)
+    }
+    this.scratchStyle.addEventListener('change', () =>
+      handlers.onScratchStyle(this.scratchStyle.value as ScratchStyleId),
+    )
 
     this.scratchFileButton.addEventListener('click', () => this.scratchFileInput.click())
     this.scratchFileInput.addEventListener('change', () => {
@@ -113,6 +127,12 @@ export class ControlsPanel {
     this.scratchVolume.value = String(Math.round(scratch.volume * 100))
     this.scratchVolumeOut.value = `${Math.round(scratch.volume * 100)}%`
     this.scratchFileName.textContent = scratch.customName ?? 'No sample loaded'
+    this.scratchStyle.value = scratch.style
+    this.scratchStyle.disabled = scratch.source !== 'synth'
+    this.scratchStyleHint.textContent =
+      scratch.source === 'synth'
+        ? (SCRATCH_STYLE_LIST.find((style) => style.id === scratch.style)?.hint ?? '')
+        : 'Endings apply to the built-in scratch.'
     for (const radio of document.querySelectorAll<HTMLInputElement>('input[name="scratch-placement"]')) {
       radio.checked = radio.value === scratch.placement
     }

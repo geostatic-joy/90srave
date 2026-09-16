@@ -2,7 +2,7 @@ import './style.css'
 import { decodeFile } from './audio/decode'
 import { PreviewPlayer } from './audio/player'
 import { canScratch, renderClip, type RenderResult } from './audio/render'
-import { MAX_SCRATCH_LENGTH, MIN_SCRATCH_LENGTH } from './audio/scratch'
+import { MAX_SCRATCH_LENGTH, MIN_SCRATCH_LENGTH, SCRATCH_STYLES } from './audio/scratch'
 import { downloadBlob } from './export/download'
 import { encodeBuffer } from './export/encode'
 import {
@@ -105,6 +105,13 @@ const controls = new ControlsPanel({
   },
   onScratchSource: (value) => {
     state.scratch.source = value
+    invalidateRender()
+    refreshPanels()
+  },
+  onScratchStyle: (value) => {
+    state.scratch.style = value
+    // Each ending has its own natural length, so follow it.
+    state.scratch.length = SCRATCH_STYLES[value].defaultLength
     invalidateRender()
     refreshPanels()
   },

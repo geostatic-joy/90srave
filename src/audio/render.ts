@@ -1,6 +1,12 @@
 import type { AppState } from '../types'
 import { normalizeBuffer, sliceBuffer } from './buffers'
-import { EDGE_FADE, MIN_CLIP_FOR_SCRATCH, conformScratchSample, synthesizeScratch } from './scratch'
+import {
+  EDGE_FADE,
+  MIN_CLIP_FOR_SCRATCH,
+  SCRATCH_STYLES,
+  conformScratchSample,
+  synthesizeScratch,
+} from './scratch'
 
 /** An overlaid scratch always leaves at least this much music in front of it. */
 const MIN_MUSIC_BEFORE_SCRATCH = 0.5
@@ -53,8 +59,17 @@ export async function renderClip(state: AppState): Promise<RenderResult> {
     } else if (scratch.source === 'custom' && scratch.customBuffer) {
       scratchBuffer = await conformScratchSample(scratch.customBuffer, sampleRate, channels, length)
     } else {
+      const style = SCRATCH_STYLES[scratch.style]
       const musicEnd = overlay ? clipDuration - length : clipDuration
-      scratchBuffer = synthesizeScratch(slice, musicEnd, length)
+      // The gesture reads from the track around the cut, not just from the
+      // selection: styles that keep rolling forward (power down, the lurch at
+      // the start of a needle drag) need the audio on the far side of it.
+      const cut = state.startTime + musicEnd
+      const windowStart = Math.max(0, cut - style.lookBehind * length)
+      const windowEnd = Math.min(source.duration, cut + style.lookAhead * length)
+      const window = sliceBuffer(source, windowStart, windowEnd)
+      const cutSample = Math.round((cut - windowStart) * sampleRate)
+      scratchBuffer = synthesizeScratch(window, cutSample, length, style)
     }
   }
 
