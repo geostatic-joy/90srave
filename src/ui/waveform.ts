@@ -40,6 +40,8 @@ export class WaveformView {
   private wavesurfer: WaveSurfer | null = null
   private region: Region | null = null
   private duration = 0
+  private dimBefore: HTMLElement | null = null
+  private dimAfter: HTMLElement | null = null
 
   constructor(
     private container: HTMLElement,
@@ -80,8 +82,13 @@ export class WaveformView {
       drag: true,
       resize: resizable,
       minLength: MIN_LENGTH,
-      color: 'rgba(255, 94, 168, 0.22)',
+      color: 'rgba(255, 94, 168, 0.26)',
     })
+
+    // Shade everything outside the selection, so the window reads at a glance.
+    this.dimBefore = this.addDimmer()
+    this.dimAfter = this.addDimmer()
+    this.syncDimmers(start, end)
 
     regions.on('region-update', (region, side) => {
       if (region.id !== REGION_ID) return
@@ -99,6 +106,24 @@ export class WaveformView {
   /** Push a selection into the region without echoing a change event back. */
   setRegion(start: number, end: number): void {
     this.region?.setOptions({ start, end })
+    this.syncDimmers(start, end)
+  }
+
+  private addDimmer(): HTMLElement {
+    const dimmer = document.createElement('div')
+    dimmer.className = 'waveform__dim'
+    this.container.appendChild(dimmer)
+    return dimmer
+  }
+
+  private syncDimmers(start: number, end: number): void {
+    if (!this.dimBefore || !this.dimAfter || this.duration <= 0) return
+    const from = Math.max(0, Math.min(100, (start / this.duration) * 100))
+    const to = Math.max(0, Math.min(100, (end / this.duration) * 100))
+    this.dimBefore.style.left = '0'
+    this.dimBefore.style.width = `${from}%`
+    this.dimAfter.style.left = `${to}%`
+    this.dimAfter.style.width = `${100 - to}%`
   }
 
   setResizable(resizable: boolean): void {
@@ -114,5 +139,10 @@ export class WaveformView {
     this.wavesurfer?.destroy()
     this.wavesurfer = null
     this.region = null
+    // The dimmers live next to wavesurfer's host, so they are ours to clean up.
+    this.dimBefore?.remove()
+    this.dimAfter?.remove()
+    this.dimBefore = null
+    this.dimAfter = null
   }
 }

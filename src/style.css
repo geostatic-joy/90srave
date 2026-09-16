@@ -25,7 +25,12 @@ body {
   margin: 0;
   background: radial-gradient(circle at 20% -10%, #2a1b45 0%, var(--bg) 55%) fixed;
   color: var(--fg);
-  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font:
+    15px/1.5 system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
 }
 
 .app {
@@ -72,7 +77,9 @@ body {
   padding: 28px 16px;
   text-align: center;
   margin-bottom: 16px;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 
 .drop-zone--over {
@@ -142,11 +149,40 @@ body {
 }
 
 .waveform {
+  position: relative;
   background: #120e1f;
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 4px;
-  min-height: 132px;
+  overflow: hidden;
+  min-height: 124px;
+}
+
+/* Everything outside the selection is shaded back. */
+.waveform__dim {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(9, 7, 16, 0.62);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* wavesurfer renders the region inside a shadow root, so reach it through
+   ::part(). box-shadow is used for the edges because the plugin writes the
+   border and background as inline styles. */
+.waveform ::part(region) {
+  box-shadow:
+    inset 4px 0 0 0 var(--accent),
+    inset -4px 0 0 0 var(--accent),
+    0 0 14px rgba(255, 94, 168, 0.35);
+}
+
+/* The plugin sizes and colours its handles inline, hence !important. */
+.waveform ::part(region-handle) {
+  width: 12px !important;
+  background: var(--accent) !important;
+  border-color: var(--accent-2) !important;
+  border-width: 3px !important;
 }
 
 .selection-row {
@@ -184,7 +220,7 @@ body {
   margin-bottom: 4px;
 }
 
-input[type="text"],
+input[type='text'],
 select {
   width: 100%;
   background: var(--bg-input);
@@ -195,12 +231,12 @@ select {
   font: inherit;
 }
 
-input[type="text"]:read-only {
+input[type='text']:read-only {
   color: var(--fg-dim);
   background: #1b1630;
 }
 
-input[type="text"]:focus,
+input[type='text']:focus,
 select:focus {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
@@ -274,7 +310,7 @@ select:focus {
   min-width: 120px;
 }
 
-.slider-row input[type="range"] {
+.slider-row input[type='range'] {
   flex: 1;
   min-width: 140px;
   accent-color: var(--accent);

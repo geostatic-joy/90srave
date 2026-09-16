@@ -228,7 +228,45 @@ await page.waitForFunction(
   { timeout: 60_000 },
 )
 check('preview plays the rendered clip', true, await page.textContent('#preview-status'))
+
+const playing = () =>
+  page.waitForFunction(() => /Playing/.test(document.querySelector('#preview-status').textContent), null, {
+    timeout: 60_000,
+  })
+
+await page.click('.nudges[data-target="start"] button[data-nudge="1"]')
+await page.waitForTimeout(150)
+check(
+  'nudging the selection stops playback',
+  (await page.textContent('#preview-status')) === '',
+  await page.textContent('#preview-status'),
+)
+
+if (box) {
+  await page.click('#play-selection')
+  await playing()
+  const cx = box.x + box.width / 2
+  const cy = box.y + box.height / 2
+  await page.mouse.move(cx, cy)
+  await page.mouse.down()
+  await page.mouse.move(cx + 60, cy, { steps: 8 })
+  await page.mouse.up()
+  await page.waitForTimeout(150)
+  check(
+    'dragging the region stops playback',
+    (await page.textContent('#preview-status')) === '',
+    await page.textContent('#preview-status'),
+  )
+}
 await page.click('#stop')
+
+const dimmers = await page.evaluate(() =>
+  [...document.querySelectorAll('#waveform .waveform__dim')].map((node) => ({
+    left: node.style.left,
+    width: node.style.width,
+  })),
+)
+check('the waveform outside the selection is shaded', dimmers.length === 2, JSON.stringify(dimmers))
 
 // ------------------------------------------------------------------ export
 
