@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>90s Rave — 90-Second Snippet Tool</title>
+    <meta
+      name="description"
+      content="Pick a 90-second window of an MP3 or FLAC, add a record scratch, export MP3/FLAC/WAV. Everything stays in your browser."
+    />
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <h1>90s Rave</h1>
+        <p class="tagline">
+          Cut a 90-second snippet out of an MP3 or FLAC, land it with a record scratch, export it.
+          Nothing leaves your browser.
+        </p>
+      </header>
+
+      <section id="drop-zone" class="drop-zone" aria-label="Audio file drop zone">
+        <p class="drop-zone__title">Drop an MP3 or FLAC here</p>
+        <p class="drop-zone__hint">…or pick one</p>
+        <button type="button" id="file-button" class="btn btn--primary">Choose file</button>
+        <input
+          type="file"
+          id="file-input"
+          accept=".mp3,.flac,.wav,audio/mpeg,audio/flac,audio/x-flac,audio/wav"
+          hidden
+        />
+        <p id="load-status" class="status" role="status"></p>
+      </section>
+
+      <section id="meta" class="panel meta" hidden>
+        <dl class="meta__grid">
+          <div><dt>File</dt><dd id="meta-name">—</dd></div>
+          <div><dt>Duration</dt><dd id="meta-duration">—</dd></div>
+          <div><dt>Sample rate</dt><dd id="meta-samplerate">—</dd></div>
+          <div><dt>Channels</dt><dd id="meta-channels">—</dd></div>
+        </dl>
+      </section>
+
+      <main id="editor" class="editor" hidden>
+        <section class="panel">
+          <h2>Selection</h2>
+          <div id="waveform" class="waveform"></div>
+
+          <div class="selection-row">
+            <label class="check">
+              <input type="checkbox" id="custom-length" />
+              <span>Custom length</span>
+            </label>
+            <button type="button" id="reset-90" class="btn">Reset to 90s</button>
+            <span id="selection-note" class="note"></span>
+          </div>
+
+          <div class="time-grid">
+            <div class="time-field">
+              <label for="start-input">Start</label>
+              <input type="text" id="start-input" class="time-input" inputmode="decimal" value="0:00.0" />
+              <div class="nudges" data-target="start">
+                <button type="button" class="btn btn--tiny" data-nudge="-1">−1s</button>
+                <button type="button" class="btn btn--tiny" data-nudge="-0.1">−0.1s</button>
+                <button type="button" class="btn btn--tiny" data-nudge="0.1">+0.1s</button>
+                <button type="button" class="btn btn--tiny" data-nudge="1">+1s</button>
+              </div>
+            </div>
+
+            <div class="time-field">
+              <label for="end-input">End</label>
+              <input type="text" id="end-input" class="time-input" inputmode="decimal" value="1:30.0" />
+              <div class="nudges" data-target="end">
+                <button type="button" class="btn btn--tiny" data-nudge="-1">−1s</button>
+                <button type="button" class="btn btn--tiny" data-nudge="-0.1">−0.1s</button>
+                <button type="button" class="btn btn--tiny" data-nudge="0.1">+0.1s</button>
+                <button type="button" class="btn btn--tiny" data-nudge="1">+1s</button>
+              </div>
+            </div>
+
+            <div class="time-field">
+              <label for="duration-input">Length</label>
+              <input type="text" id="duration-input" class="time-input" inputmode="decimal" value="1:30.0" />
+              <p class="note">mm:ss.s or plain seconds</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Preview</h2>
+          <div class="button-row">
+            <button type="button" id="play-selection" class="btn btn--primary">▶ Play selection</button>
+            <button type="button" id="play-ending" class="btn">▶ Play ending</button>
+            <button type="button" id="stop" class="btn">■ Stop</button>
+            <span id="preview-status" class="status" role="status"></span>
+          </div>
+          <p class="note">Preview plays the rendered clip, so it sounds exactly like the export.</p>
+        </section>
+
+        <section class="panel">
+          <h2>Record scratch</h2>
+          <label class="check">
+            <input type="checkbox" id="scratch-enabled" />
+            <span>Add a record scratch at the end</span>
+          </label>
+
+          <div id="scratch-options" class="options" hidden>
+            <fieldset class="fieldset">
+              <legend>Placement</legend>
+              <label class="check">
+                <input type="radio" name="scratch-placement" value="overlay" checked />
+                <span>Overlay — scratch replaces the last second of the clip</span>
+              </label>
+              <label class="check">
+                <input type="radio" name="scratch-placement" value="append" />
+                <span>Append — scratch plays after the full selection</span>
+              </label>
+            </fieldset>
+
+            <fieldset class="fieldset">
+              <legend>Sound</legend>
+              <label class="check">
+                <input type="radio" name="scratch-source" value="synth" checked />
+                <span>Built-in (synthesized from your track)</span>
+              </label>
+              <label class="check">
+                <input type="radio" name="scratch-source" value="custom" />
+                <span>Custom sample</span>
+              </label>
+              <div class="button-row">
+                <button type="button" id="scratch-file-button" class="btn btn--tiny">Upload sample…</button>
+                <input type="file" id="scratch-file-input" accept=".mp3,.flac,.wav,audio/*" hidden />
+                <span id="scratch-file-name" class="note">No sample loaded</span>
+              </div>
+            </fieldset>
+
+            <div class="slider-row">
+              <label for="scratch-volume">Scratch volume</label>
+              <input type="range" id="scratch-volume" min="0" max="150" step="5" value="100" />
+              <output id="scratch-volume-out">100%</output>
+            </div>
+          </div>
+          <p id="scratch-note" class="note"></p>
+        </section>
+
+        <section class="panel">
+          <h2>Polish</h2>
+          <div class="slider-row">
+            <label class="check">
+              <input type="checkbox" id="fade-in-enabled" />
+              <span>Fade in</span>
+            </label>
+            <input type="range" id="fade-in-length" min="0" max="3" step="0.1" value="0.5" />
+            <output id="fade-in-out">0.5s</output>
+          </div>
+          <div class="slider-row">
+            <label class="check">
+              <input type="checkbox" id="fade-out-enabled" />
+              <span>Fade out</span>
+            </label>
+            <input type="range" id="fade-out-length" min="0" max="3" step="0.1" value="0.5" />
+            <output id="fade-out-out">0.5s</output>
+          </div>
+          <p id="fade-out-note" class="note"></p>
+          <label class="check">
+            <input type="checkbox" id="normalize" />
+            <span>Normalize output</span>
+          </label>
+        </section>
+
+        <section class="panel">
+          <h2>Export</h2>
+          <div class="export-grid">
+            <div class="time-field">
+              <label for="format-select">Format</label>
+              <select id="format-select">
+                <option value="mp3" selected>MP3</option>
+                <option value="flac">FLAC</option>
+                <option value="wav">WAV</option>
+              </select>
+            </div>
+            <div class="time-field" id="bitrate-field">
+              <label for="bitrate-select">Bitrate</label>
+              <select id="bitrate-select">
+                <option value="128">128 kbps</option>
+                <option value="192">192 kbps</option>
+                <option value="320" selected>320 kbps</option>
+              </select>
+            </div>
+            <div class="time-field time-field--wide">
+              <label for="filename-input">Filename</label>
+              <input type="text" id="filename-input" />
+            </div>
+          </div>
+          <div class="button-row">
+            <button type="button" id="export-button" class="btn btn--primary">Export</button>
+            <progress id="export-progress" max="100" value="0" hidden></progress>
+            <span id="export-status" class="status" role="status"></span>
+          </div>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <p>All decoding, editing and encoding happens locally. No uploads, works offline after first load.</p>
+      </footer>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
