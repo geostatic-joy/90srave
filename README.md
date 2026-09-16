@@ -56,7 +56,9 @@ npm run preview   # serve the production build
   - **Power down** (2.5s) — the turntable switched off: the music keeps rolling forward past
     the cut while the platter coasts to a halt and the pitch sags with it.
 - Picking an ending sets the length slider to that ending's natural length; move it from there.
-- Or upload your own scratch sample, which gets resampled and re-channelled to match.
+- Or use your own sound effect: pick one from the **Sound effect** dropdown, which lists the
+  [`public/sfx/`](public/sfx/) folder, or upload a file. Either way it is resampled and
+  re-channelled to match the clip.
 - Scratch length runs from 0.3s to 5s. The gestures are defined in normalized time, so a
   longer setting stretches the same motion into a slower one; for a custom sample it trims
   instead (the sample loads at its own length to start with).
@@ -86,6 +88,7 @@ src/
     decode.ts          File -> AudioBuffer
     buffers.ts         slicing, downmixing, resampling, normalizing
     scratch.ts         synthesized scratch, custom sample conforming
+    library.ts         the sfx folder's index and its sound effects
     render.ts          OfflineAudioContext: slice + fades + scratch -> AudioBuffer
     player.ts          preview playback of the rendered buffer
   ui/
@@ -101,6 +104,7 @@ src/
     download.ts
 public/flac/
   flacEncoderWorker.js the FLAC worker (plain JS, loads libflac via importScripts)
+public/sfx/            drop sound effects here (see below)
 ```
 
 Every state change debounces into a single `renderClip()` pass that produces one
@@ -116,6 +120,26 @@ Two details worth knowing:
 - **MP3 limits.** MPEG only carries a fixed set of sample rates, so anything else is
   resampled to 48 kHz, and 320 kbps is not available below 32 kHz. Either case is reported
   in the export status line rather than being applied silently.
+
+## Sound effects folder
+
+Put audio files in **`public/sfx/`** and they appear in the scratch panel's **Sound effect**
+dropdown. `.mp3`, `.wav`, `.flac`, `.ogg`, `.opus`, `.m4a` and `.aac` are picked up, and the
+label comes from the filename (`needle-drop_02.wav` → "Needle drop 02").
+
+Static hosting cannot list a directory, so the app fetches `sfx/index.json` to know what is
+there. `scripts/build-sfx-index.mjs` writes that file and runs as part of `npm run dev`,
+`npm run build` and `npm install` — so in development, just drop files in and restart.
+
+On an already-deployed site the same script works against the deployed folder, no rebuild
+needed:
+
+```bash
+node scripts/build-sfx-index.mjs /path/to/deployed/sfx
+```
+
+To rename an entry, edit its `label` in `index.json`; regenerating keeps labels you changed.
+An empty or missing folder simply hides the dropdown, leaving the upload button.
 
 `libflac.js` is an emscripten build that has to be loaded with `importScripts()` and finds its
 `.wasm` next to itself, so `scripts/vendor-flac.mjs` copies it into `public/flac/` on install

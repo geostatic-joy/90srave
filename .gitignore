@@ -9,3 +9,6 @@ dist-ssr
 public/flac/libflac.*
 tests/.fixtures
 tests/.out
+
+# generated from whatever is in public/sfx
+public/sfx/index.json

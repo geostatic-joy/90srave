@@ -5,12 +5,14 @@
   "type": "module",
   "description": "Browser-based 90-second audio snippet tool with an optional record-scratch ending.",
   "scripts": {
-    "dev": "npm run vendor:flac && vite",
-    "build": "npm run vendor:flac && tsc --noEmit && vite build",
+    "dev": "npm run prep && vite",
+    "build": "npm run prep && tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "prep": "npm run vendor:flac && npm run sfx:index",
     "vendor:flac": "node scripts/vendor-flac.mjs",
-    "postinstall": "node scripts/vendor-flac.mjs",
+    "sfx:index": "node scripts/build-sfx-index.mjs",
+    "postinstall": "npm run prep",
     "test:browser": "node tests/browser.mjs"
   },
   "dependencies": {

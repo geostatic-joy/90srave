@@ -19,7 +19,11 @@ export async function decodeFile(file: File): Promise<DecodedAudio> {
   if (!looksLikeAudio(file)) {
     throw new Error(`"${file.name}" does not look like an audio file. Try an MP3 or FLAC.`)
   }
-  const bytes = await file.arrayBuffer()
+  return { buffer: await decodeArrayBuffer(await file.arrayBuffer(), file.name), name: file.name }
+}
+
+/** Decode already-fetched bytes. `name` is only used for error messages. */
+export async function decodeArrayBuffer(bytes: ArrayBuffer, name: string): Promise<AudioBuffer> {
   // decodeAudioData resamples to the decoding context's rate, so decode at the
   // file's own rate where the header tells us what it is — otherwise a 48 kHz
   // or 96 kHz master would quietly come back downsampled.
@@ -38,12 +42,12 @@ export async function decodeFile(file: File): Promise<DecodedAudio> {
     } catch (error) {
       const detail = error instanceof Error && error.message ? ` (${error.message})` : ''
       throw new Error(
-        `This browser could not decode "${file.name}"${detail}. FLAC needs a recent Chrome, Firefox or Safari.`,
+        `This browser could not decode "${name}"${detail}. FLAC needs a recent Chrome, Firefox or Safari.`,
       )
     }
   }
   if (buffer.length === 0) {
-    throw new Error(`"${file.name}" decoded to an empty track.`)
+    throw new Error(`"${name}" decoded to an empty track.`)
   }
-  return { buffer, name: file.name }
+  return buffer
 }
