@@ -330,6 +330,17 @@ const append = await renderWav('analysis-append.wav', async () => {
   await page.check('#scratch-enabled')
   await page.check('input[name="scratch-placement"][value="append"]')
 })
+const longScratch = await renderWav('analysis-long-scratch.wav', async () => {
+  await page.check('#scratch-enabled')
+  await page.check('input[name="scratch-placement"][value="append"]')
+  await page.locator('#scratch-length').fill('2.5')
+  await page.locator('#scratch-length').dispatchEvent('change')
+})
+const overlayLong = await renderWav('analysis-overlay-long.wav', async () => {
+  await page.check('#scratch-enabled')
+  await page.locator('#scratch-length').fill('3')
+  await page.locator('#scratch-length').dispatchEvent('change')
+})
 const polished = await renderWav('analysis-polish.wav', async () => {
   await page.check('#fade-in-enabled')
   await page.check('#normalize')
@@ -386,6 +397,29 @@ for (let i = 0; i < clean.frames; i += 97) {
   }
 }
 check('appending leaves the selection untouched', appendMatches)
+
+check(
+  'the scratch length slider sets the appended length',
+  Math.abs(longScratch.duration - 22.5) <= 0.05,
+  `${longScratch.duration.toFixed(4)}s`,
+)
+check(
+  'a longer overlaid scratch still fits inside the clip',
+  Math.abs(overlayLong.duration - 20) <= 0.05,
+  `${overlayLong.duration.toFixed(4)}s`,
+)
+let overlayLongDiff = -1
+for (let i = 0; i < overlayLong.frames; i++) {
+  if (Math.abs(overlayLong.left[i] - clean.left[i]) > 0.002) {
+    overlayLongDiff = i
+    break
+  }
+}
+check(
+  'a 3s overlaid scratch starts 3s before the end',
+  overlayLongDiff > 0 && Math.abs(overlayLong.duration - overlayLongDiff / sr - 3) < 0.05,
+  `music ends at ${(overlayLongDiff / sr).toFixed(3)}s`,
+)
 
 check('fade-in ramps up from silence', rms(polished.left, 0, 2205) < rms(polished.left, sr, sr + 2205))
 let peak = 0

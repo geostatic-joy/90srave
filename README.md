@@ -48,6 +48,9 @@ npm run preview   # serve the production build
   position sweep (backwards, forwards, backwards, then a coast to a dead stop) over a
   burst of filtered surface noise. Nothing licensed is bundled.
 - Or upload your own scratch sample, which gets resampled and re-channelled to match.
+- Scratch length runs from 0.3s to 5s. It stretches the synthesized gesture into a slower,
+  more laboured stop, and trims a custom sample (which loads at its own length to start with).
+  An overlaid scratch is capped so at least half a second of music survives in front of it.
 - Scratch volume runs from 0 to 150%.
 
 **Polish and export**

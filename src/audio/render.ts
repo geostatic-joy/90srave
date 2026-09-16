@@ -1,15 +1,9 @@
 import type { AppState } from '../types'
 import { normalizeBuffer, sliceBuffer } from './buffers'
-import {
-  EDGE_FADE,
-  MIN_CLIP_FOR_SCRATCH,
-  SCRATCH_DURATION,
-  conformScratchSample,
-  synthesizeScratch,
-} from './scratch'
+import { EDGE_FADE, MIN_CLIP_FOR_SCRATCH, conformScratchSample, synthesizeScratch } from './scratch'
 
-/** Longest a custom sample may run when appended after the clip. */
-const MAX_APPENDED_SCRATCH = 30
+/** An overlaid scratch always leaves at least this much music in front of it. */
+const MIN_MUSIC_BEFORE_SCRATCH = 0.5
 
 export interface RenderResult {
   buffer: AudioBuffer
@@ -17,8 +11,8 @@ export interface RenderResult {
   musicDuration: number
   /** Where the scratch starts, in seconds, or null when there is none. */
   scratchStart: number | null
-  /** Set when the scratch was requested but could not be applied. */
-  scratchSkipped: string | null
+  /** Set when the scratch could not be applied, or had to be shortened. */
+  scratchNote: string | null
 }
 
 export function canScratch(clipDuration: number): boolean {
@@ -40,20 +34,27 @@ export async function renderClip(state: AppState): Promise<RenderResult> {
 
   const { scratch } = state
   let scratchBuffer: AudioBuffer | null = null
-  let scratchSkipped: string | null = null
+  let scratchNote: string | null = null
 
   if (scratch.enabled) {
     const overlay = scratch.placement === 'overlay'
+    // Overlaying eats into the music, so there the scratch can only be as long
+    // as the clip can spare. Appending costs the music nothing.
+    const room = overlay ? Math.max(0.1, clipDuration - MIN_MUSIC_BEFORE_SCRATCH) : scratch.length
+    const length = Math.min(scratch.length, room)
+    if (length < scratch.length - 0.001) {
+      scratchNote = `Scratch shortened to ${length.toFixed(1)}s to leave room for the music.`
+    }
+
     if (!canScratch(clipDuration)) {
-      scratchSkipped = `The scratch needs a clip of at least ${MIN_CLIP_FOR_SCRATCH}s.`
+      scratchNote = `The scratch needs a clip of at least ${MIN_CLIP_FOR_SCRATCH}s.`
     } else if (scratch.source === 'custom' && !scratch.customBuffer) {
-      scratchSkipped = 'No custom scratch sample loaded yet.'
+      scratchNote = 'No custom scratch sample loaded yet.'
     } else if (scratch.source === 'custom' && scratch.customBuffer) {
-      const maxDuration = overlay ? Math.max(0.1, clipDuration - 0.5) : MAX_APPENDED_SCRATCH
-      scratchBuffer = await conformScratchSample(scratch.customBuffer, sampleRate, channels, maxDuration)
+      scratchBuffer = await conformScratchSample(scratch.customBuffer, sampleRate, channels, length)
     } else {
-      const musicEnd = overlay ? clipDuration - SCRATCH_DURATION : clipDuration
-      scratchBuffer = synthesizeScratch(slice, musicEnd)
+      const musicEnd = overlay ? clipDuration - length : clipDuration
+      scratchBuffer = synthesizeScratch(slice, musicEnd, length)
     }
   }
 
@@ -100,5 +101,5 @@ export async function renderClip(state: AppState): Promise<RenderResult> {
   const rendered = await ctx.startRendering()
   if (state.normalize) normalizeBuffer(rendered)
 
-  return { buffer: rendered, musicDuration, scratchStart, scratchSkipped }
+  return { buffer: rendered, musicDuration, scratchStart, scratchNote }
 }

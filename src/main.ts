@@ -2,6 +2,7 @@ import './style.css'
 import { decodeFile } from './audio/decode'
 import { PreviewPlayer } from './audio/player'
 import { canScratch, renderClip, type RenderResult } from './audio/render'
+import { MAX_SCRATCH_LENGTH, MIN_SCRATCH_LENGTH } from './audio/scratch'
 import { downloadBlob } from './export/download'
 import { encodeBuffer } from './export/encode'
 import {
@@ -19,7 +20,7 @@ import { initFileLoader } from './ui/fileLoader'
 import { SelectionPanel } from './ui/selectionPanel'
 import { WaveformView } from './ui/waveform'
 import { byId, setStatus } from './util/dom'
-import { formatTime, formatTimeForFilename } from './util/time'
+import { clamp, formatTime, formatTimeForFilename } from './util/time'
 
 /** How long to wait after the last edit before re-rendering the clip. */
 const RENDER_DEBOUNCE = 300
@@ -110,6 +111,11 @@ const controls = new ControlsPanel({
   onScratchFile: (file) => {
     void loadScratchSample(file)
   },
+  onScratchLength: (value) => {
+    state.scratch.length = value
+    invalidateRender()
+    refreshPanels()
+  },
   onScratchVolume: (value) => {
     state.scratch.volume = value
     invalidateRender()
@@ -185,7 +191,7 @@ function applySelection(next: Selection): void {
 
 function refreshPanels(): void {
   selectionPanel.update(currentSelection(), state.customLength, trackDuration())
-  controls.update(state, canScratch(clipDuration()), rendered?.scratchSkipped ?? null)
+  controls.update(state, canScratch(clipDuration()), rendered?.scratchNote ?? null)
 }
 
 function invalidateRender(): void {
@@ -278,6 +284,12 @@ async function loadScratchSample(file: File): Promise<void> {
     state.scratch.customBuffer = buffer
     state.scratch.customName = file.name
     state.scratch.source = 'custom'
+    // Default to playing the whole sample; the slider trims it from there.
+    state.scratch.length = clamp(
+      Math.round(buffer.duration * 10) / 10,
+      MIN_SCRATCH_LENGTH,
+      MAX_SCRATCH_LENGTH,
+    )
     invalidateRender()
     refreshPanels()
   } catch (error) {

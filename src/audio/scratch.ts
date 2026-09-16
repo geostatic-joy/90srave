@@ -1,10 +1,13 @@
 import { conformChannels, conformSampleRate } from './buffers'
 import { createAudioBuffer } from './context'
 
-/** Length of the synthesized scratch, in seconds. */
-export const SCRATCH_DURATION = 1
-/** How much of the track the synthesized scratch chews on. */
-export const SCRATCH_SOURCE_DURATION = 0.8
+/** Default scratch length, in seconds. */
+export const DEFAULT_SCRATCH_LENGTH = 1
+/** Range the scratch length slider covers, in seconds. */
+export const MIN_SCRATCH_LENGTH = 0.3
+export const MAX_SCRATCH_LENGTH = 5
+/** How much of the track the synthesized scratch chews on, as a fraction of its length. */
+export const SCRATCH_SOURCE_RATIO = 0.8
 /** Below this clip length the scratch has nothing to work with. */
 export const MIN_CLIP_FOR_SCRATCH = 3
 /** Click-avoiding micro fade applied at every hard edge. */
@@ -55,15 +58,18 @@ function positionAt(t: number): number {
  * Build a record-scratch tail out of the clip's own final moments: a
  * playback-rate wiggle (forward, reverse, forward) over a burst of filtered
  * surface noise, ending in a hard stop. Nothing licensed is bundled.
+ *
+ * The motion is defined in normalized time, so a longer `duration` stretches
+ * the same gesture into a slower, more laboured stop.
  */
-export function synthesizeScratch(clip: AudioBuffer, musicEndTime: number): AudioBuffer {
+export function synthesizeScratch(clip: AudioBuffer, musicEndTime: number, duration: number): AudioBuffer {
   const sampleRate = clip.sampleRate
   const channels = clip.numberOfChannels
-  const outLength = Math.max(2, Math.round(SCRATCH_DURATION * sampleRate))
+  const outLength = Math.max(2, Math.round(duration * sampleRate))
   const out = createAudioBuffer(channels, outLength, sampleRate)
 
   const segmentEnd = Math.max(2, Math.min(clip.length, Math.round(musicEndTime * sampleRate)))
-  const segmentStart = Math.max(0, segmentEnd - Math.round(SCRATCH_SOURCE_DURATION * sampleRate))
+  const segmentStart = Math.max(0, segmentEnd - Math.round(duration * SCRATCH_SOURCE_RATIO * sampleRate))
   const segmentLength = Math.max(2, segmentEnd - segmentStart)
 
   // Sample positions (in source samples) and how fast we are moving through them.

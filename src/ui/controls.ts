@@ -6,6 +6,7 @@ export interface ControlsHandlers {
   onScratchPlacement: (value: ScratchPlacement) => void
   onScratchSource: (value: ScratchSource) => void
   onScratchFile: (file: File) => void
+  onScratchLength: (value: number) => void
   onScratchVolume: (value: number) => void
   onFadeIn: (enabled: boolean, length: number) => void
   onFadeOut: (enabled: boolean, length: number) => void
@@ -23,6 +24,8 @@ export class ControlsPanel {
   private scratchFileButton = byId<HTMLButtonElement>('scratch-file-button')
   private scratchFileInput = byId<HTMLInputElement>('scratch-file-input')
   private scratchFileName = byId<HTMLElement>('scratch-file-name')
+  private scratchLength = byId<HTMLInputElement>('scratch-length')
+  private scratchLengthOut = byId<HTMLOutputElement>('scratch-length-out')
   private scratchVolume = byId<HTMLInputElement>('scratch-volume')
   private scratchVolumeOut = byId<HTMLOutputElement>('scratch-volume-out')
   private scratchNote = byId<HTMLElement>('scratch-note')
@@ -65,6 +68,13 @@ export class ControlsPanel {
       this.scratchFileInput.value = ''
     })
 
+    this.scratchLength.addEventListener('input', () => {
+      this.scratchLengthOut.value = `${Number(this.scratchLength.value).toFixed(1)}s`
+    })
+    this.scratchLength.addEventListener('change', () =>
+      handlers.onScratchLength(Number(this.scratchLength.value)),
+    )
+
     this.scratchVolume.addEventListener('input', () => {
       this.scratchVolumeOut.value = `${this.scratchVolume.value}%`
     })
@@ -92,12 +102,14 @@ export class ControlsPanel {
     this.exportButton.addEventListener('click', () => handlers.onExport())
   }
 
-  update(state: AppState, scratchAvailable: boolean, scratchSkipped: string | null): void {
+  update(state: AppState, scratchAvailable: boolean, scratchNote: string | null): void {
     const { scratch, fades } = state
 
     this.scratchEnabled.checked = scratch.enabled
     this.scratchEnabled.disabled = !scratchAvailable
     this.scratchOptions.hidden = !scratch.enabled
+    this.scratchLength.value = String(scratch.length)
+    this.scratchLengthOut.value = `${scratch.length.toFixed(1)}s`
     this.scratchVolume.value = String(Math.round(scratch.volume * 100))
     this.scratchVolumeOut.value = `${Math.round(scratch.volume * 100)}%`
     this.scratchFileName.textContent = scratch.customName ?? 'No sample loaded'
@@ -110,8 +122,8 @@ export class ControlsPanel {
 
     if (!scratchAvailable) {
       this.scratchNote.textContent = 'Clips under 3s are too short for a scratch.'
-    } else if (scratchSkipped) {
-      this.scratchNote.textContent = scratchSkipped
+    } else if (scratchNote) {
+      this.scratchNote.textContent = scratchNote
     } else {
       this.scratchNote.textContent = ''
     }
