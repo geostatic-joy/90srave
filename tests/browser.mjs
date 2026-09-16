@@ -7,7 +7,8 @@
  *
  * Needs Playwright:  npm i -D playwright && npx playwright install chromium
  */
-import { mkdirSync, readFileSync, rmSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ensureFixtures } from './fixtures.mjs'
@@ -486,6 +487,54 @@ check(
   mixCorr > 0.5 && mixCorr > overlayCorr * 2,
   `mix ${mixCorr.toFixed(3)} vs overlay ${overlayCorr.toFixed(3)}`,
 )
+
+// -------------------------------------------------------- sound-effects folder
+
+section('Sound-effects folder')
+const projectRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
+const deployedSfx = join(projectRoot, 'dist', 'sfx')
+if (!existsSync(join(projectRoot, 'dist'))) {
+  console.log('  ..   skipped: no dist/ to drop sound effects into')
+} else {
+  // Exactly what a user would do: drop a file in the folder, reindex it.
+  mkdirSync(deployedSfx, { recursive: true })
+  copyFileSync(fixtures.short, join(deployedSfx, 'needle-drop_01.wav'))
+  execFileSync(process.execPath, [join(projectRoot, 'scripts', 'build-sfx-index.mjs'), deployedSfx])
+
+  await page.goto(APP_URL)
+  await loadTrack(fixtures.track)
+  await setEnd('0:20')
+  await page.check('#scratch-enabled')
+  const options = await page.locator('#scratch-library option').allTextContents()
+  check(
+    'a file dropped in the folder shows up in the dropdown',
+    options.includes('Needle drop 01'),
+    options.join(' / '),
+  )
+
+  await page.selectOption('#scratch-library', 'needle-drop_01.wav')
+  await page.waitForFunction(
+    () => document.querySelector('#scratch-file-name').textContent === 'Needle drop 01',
+    null,
+    { timeout: 60_000 },
+  )
+  check('picking one loads it as the scratch sample', true)
+  check(
+    'its own length fills the slider',
+    (await page.inputValue('#scratch-length')) === '2.5',
+    await page.inputValue('#scratch-length'),
+  )
+
+  await page.check('input[name="scratch-placement"][value="append"]')
+  await page.selectOption('#format-select', 'wav')
+  await page.waitForTimeout(700)
+  const libraryExport = readWav((await exportTo('library-append.wav')).target)
+  check(
+    'the chosen effect is what gets exported',
+    Math.abs(libraryExport.duration - 22.5) <= 0.05,
+    `${libraryExport.duration.toFixed(4)}s`,
+  )
+}
 
 // ------------------------------------------------------------ scratch styles
 

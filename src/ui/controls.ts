@@ -1,3 +1,5 @@
+import type { SfxEntry } from '../audio/library'
+import { SFX_FOLDER } from '../audio/library'
 import { SCRATCH_STYLE_LIST, type ScratchStyleId } from '../audio/scratch'
 import type { AppState, Bitrate, ExportFormat, ScratchPlacement, ScratchSource } from '../types'
 import { byId, setStatus } from '../util/dom'
@@ -8,6 +10,7 @@ export interface ControlsHandlers {
   onScratchSource: (value: ScratchSource) => void
   onScratchStyle: (value: ScratchStyleId) => void
   onScratchFile: (file: File) => void
+  onScratchLibrary: (entry: SfxEntry) => void
   onScratchLength: (value: number) => void
   onScratchVolume: (value: number) => void
   onFadeIn: (enabled: boolean, length: number) => void
@@ -25,6 +28,10 @@ export class ControlsPanel {
   private scratchOptions = byId<HTMLElement>('scratch-options')
   private scratchStyle = byId<HTMLSelectElement>('scratch-style')
   private scratchStyleHint = byId<HTMLElement>('scratch-style-hint')
+  private scratchLibrary = byId<HTMLSelectElement>('scratch-library')
+  private scratchLibraryField = byId<HTMLElement>('scratch-library-field')
+  private scratchLibraryHint = byId<HTMLElement>('scratch-library-hint')
+  private library: SfxEntry[] = []
   private scratchFileButton = byId<HTMLButtonElement>('scratch-file-button')
   private scratchFileInput = byId<HTMLInputElement>('scratch-file-input')
   private scratchFileName = byId<HTMLElement>('scratch-file-name')
@@ -75,6 +82,11 @@ export class ControlsPanel {
       handlers.onScratchStyle(this.scratchStyle.value as ScratchStyleId),
     )
 
+    this.scratchLibrary.addEventListener('change', () => {
+      const entry = this.library.find((sound) => sound.file === this.scratchLibrary.value)
+      if (entry) handlers.onScratchLibrary(entry)
+    })
+
     this.scratchFileButton.addEventListener('click', () => this.scratchFileInput.click())
     this.scratchFileInput.addEventListener('change', () => {
       const file = this.scratchFileInput.files?.[0]
@@ -116,6 +128,22 @@ export class ControlsPanel {
     this.exportButton.addEventListener('click', () => handlers.onExport())
   }
 
+  /** Fill the dropdown from the sound-effects folder. */
+  setLibrary(entries: SfxEntry[]): void {
+    this.library = entries
+    for (const option of [...this.scratchLibrary.options].slice(1)) option.remove()
+    for (const entry of entries) {
+      const option = document.createElement('option')
+      option.value = entry.file
+      option.textContent = entry.label
+      this.scratchLibrary.appendChild(option)
+    }
+    this.scratchLibraryField.hidden = entries.length === 0
+    this.scratchLibraryHint.textContent = entries.length
+      ? ''
+      : `Drop audio files into ${SFX_FOLDER}/ next to the app to list them here.`
+  }
+
   update(state: AppState, scratchAvailable: boolean, scratchNote: string | null): void {
     const { scratch, fades } = state
 
@@ -127,6 +155,8 @@ export class ControlsPanel {
     this.scratchVolume.value = String(Math.round(scratch.volume * 100))
     this.scratchVolumeOut.value = `${Math.round(scratch.volume * 100)}%`
     this.scratchFileName.textContent = scratch.customName ?? 'No sample loaded'
+    const selected = this.library.find((sound) => sound.label === scratch.customName)
+    this.scratchLibrary.value = selected?.file ?? ''
     this.scratchStyle.value = scratch.style
     this.scratchStyle.disabled = scratch.source !== 'synth'
     this.scratchStyleHint.textContent =

@@ -1,6 +1,7 @@
 import './style.css'
 import { decodeFile } from './audio/decode'
 import { PreviewPlayer } from './audio/player'
+import { loadSfxBuffer, loadSfxLibrary, type SfxEntry } from './audio/library'
 import { canScratch, renderClip, type RenderResult } from './audio/render'
 import { MAX_SCRATCH_LENGTH, MIN_SCRATCH_LENGTH, SCRATCH_STYLES } from './audio/scratch'
 import { downloadBlob } from './export/download'
@@ -117,6 +118,9 @@ const controls = new ControlsPanel({
   },
   onScratchFile: (file) => {
     void loadScratchSample(file)
+  },
+  onScratchLibrary: (entry) => {
+    void loadLibrarySample(entry)
   },
   onScratchLength: (value) => {
     state.scratch.length = value
@@ -285,25 +289,38 @@ async function loadFile(file: File): Promise<void> {
   }
 }
 
+function applyScratchSample(buffer: AudioBuffer, name: string): void {
+  state.scratch.customBuffer = buffer
+  state.scratch.customName = name
+  state.scratch.source = 'custom'
+  // Default to playing the whole sample; the slider trims it from there.
+  state.scratch.length = clamp(Math.round(buffer.duration * 10) / 10, MIN_SCRATCH_LENGTH, MAX_SCRATCH_LENGTH)
+  invalidateRender()
+  refreshPanels()
+}
+
+function reportSampleFailure(error: unknown): void {
+  state.scratch.customBuffer = null
+  state.scratch.customName = null
+  refreshPanels()
+  setStatus(previewStatus, error instanceof Error ? error.message : String(error), 'error')
+}
+
 async function loadScratchSample(file: File): Promise<void> {
   try {
     const { buffer } = await decodeFile(file)
-    state.scratch.customBuffer = buffer
-    state.scratch.customName = file.name
-    state.scratch.source = 'custom'
-    // Default to playing the whole sample; the slider trims it from there.
-    state.scratch.length = clamp(
-      Math.round(buffer.duration * 10) / 10,
-      MIN_SCRATCH_LENGTH,
-      MAX_SCRATCH_LENGTH,
-    )
-    invalidateRender()
-    refreshPanels()
+    applyScratchSample(buffer, file.name)
   } catch (error) {
-    state.scratch.customBuffer = null
-    state.scratch.customName = null
-    refreshPanels()
-    setStatus(previewStatus, error instanceof Error ? error.message : String(error), 'error')
+    reportSampleFailure(error)
+  }
+}
+
+/** Pull one of the effects out of the sfx folder next to the app. */
+async function loadLibrarySample(entry: SfxEntry): Promise<void> {
+  try {
+    applyScratchSample(await loadSfxBuffer(entry), entry.label)
+  } catch (error) {
+    reportSampleFailure(error)
   }
 }
 
@@ -360,3 +377,9 @@ byId<HTMLButtonElement>('stop').addEventListener('click', () => {
 })
 
 refreshPanels()
+
+// The sound-effects folder is optional; an empty one just hides the dropdown.
+void loadSfxLibrary().then((entries) => {
+  controls.setLibrary(entries)
+  refreshPanels()
+})

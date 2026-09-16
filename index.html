@@ -148,11 +148,18 @@
                 <input type="radio" name="scratch-source" value="custom" />
                 <span>Custom sample</span>
               </label>
+              <div class="style-field" id="scratch-library-field">
+                <label for="scratch-library">Sound effect</label>
+                <select id="scratch-library">
+                  <option value="">Choose from the sfx folder…</option>
+                </select>
+              </div>
               <div class="button-row">
                 <button type="button" id="scratch-file-button" class="btn btn--tiny">Upload sample…</button>
                 <input type="file" id="scratch-file-input" accept=".mp3,.flac,.wav,audio/*" hidden />
                 <span id="scratch-file-name" class="note">No sample loaded</span>
               </div>
+              <p id="scratch-library-hint" class="note"></p>
             </fieldset>
 
             <div class="slider-row">
