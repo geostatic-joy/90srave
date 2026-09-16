@@ -14,8 +14,8 @@
       <header class="app-header">
         <h1>90s Rave</h1>
         <p class="tagline">
-          Cut a 90-second snippet out of an MP3 or FLAC, land it with a record scratch, export it.
-          Nothing leaves your browser.
+          Cut a 90-second snippet out of an MP3 or FLAC, land it with a record scratch, export it. Nothing
+          leaves your browser.
         </p>
       </header>
 
@@ -34,10 +34,22 @@
 
       <section id="meta" class="panel meta" hidden>
         <dl class="meta__grid">
-          <div><dt>File</dt><dd id="meta-name">—</dd></div>
-          <div><dt>Duration</dt><dd id="meta-duration">—</dd></div>
-          <div><dt>Sample rate</dt><dd id="meta-samplerate">—</dd></div>
-          <div><dt>Channels</dt><dd id="meta-channels">—</dd></div>
+          <div>
+            <dt>File</dt>
+            <dd id="meta-name">—</dd>
+          </div>
+          <div>
+            <dt>Duration</dt>
+            <dd id="meta-duration">—</dd>
+          </div>
+          <div>
+            <dt>Sample rate</dt>
+            <dd id="meta-samplerate">—</dd>
+          </div>
+          <div>
+            <dt>Channels</dt>
+            <dd id="meta-channels">—</dd>
+          </div>
         </dl>
       </section>
 
@@ -133,6 +145,12 @@
                 <span id="scratch-file-name" class="note">No sample loaded</span>
               </div>
             </fieldset>
+
+            <div class="slider-row">
+              <label for="scratch-length">Scratch length</label>
+              <input type="range" id="scratch-length" min="0.3" max="5" step="0.1" value="1" />
+              <output id="scratch-length-out">1.0s</output>
+            </div>
 
             <div class="slider-row">
               <label for="scratch-volume">Scratch volume</label>

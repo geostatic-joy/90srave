@@ -1,3 +1,5 @@
+import { DEFAULT_SCRATCH_LENGTH } from './audio/scratch'
+
 export type ScratchPlacement = 'overlay' | 'append'
 export type ScratchSource = 'synth' | 'custom'
 export type ExportFormat = 'mp3' | 'flac' | 'wav'
@@ -9,6 +11,8 @@ export interface ScratchState {
   source: ScratchSource
   customBuffer: AudioBuffer | null
   customName: string | null
+  /** Seconds. Trims a custom sample; stretches the synthesized gesture. */
+  length: number
   /** 0..1.5 (UI shows 0–150%) */
   volume: number
 }
@@ -51,6 +55,7 @@ export function createInitialState(): AppState {
       source: 'synth',
       customBuffer: null,
       customName: null,
+      length: DEFAULT_SCRATCH_LENGTH,
       volume: 1,
     },
     fades: {
