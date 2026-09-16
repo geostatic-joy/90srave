@@ -42,14 +42,24 @@ export async function renderClip(state: AppState): Promise<RenderResult> {
   let scratchBuffer: AudioBuffer | null = null
   let scratchNote: string | null = null
 
+  const placement = scratch.placement
+  const overlay = placement === 'overlay'
+  const append = placement === 'append'
+
   if (scratch.enabled) {
-    const overlay = scratch.placement === 'overlay'
     // Overlaying eats into the music, so there the scratch can only be as long
-    // as the clip can spare. Appending costs the music nothing.
-    const room = overlay ? Math.max(0.1, clipDuration - MIN_MUSIC_BEFORE_SCRATCH) : scratch.length
+    // as the clip can spare. Mixing over the music is bounded by the clip
+    // itself; appending costs the music nothing.
+    const room = overlay
+      ? Math.max(0.1, clipDuration - MIN_MUSIC_BEFORE_SCRATCH)
+      : append
+        ? scratch.length
+        : clipDuration
     const length = Math.min(scratch.length, room)
     if (length < scratch.length - 0.001) {
-      scratchNote = `Scratch shortened to ${length.toFixed(1)}s to leave room for the music.`
+      scratchNote = overlay
+        ? `Scratch shortened to ${length.toFixed(1)}s to leave room for the music.`
+        : `Scratch shortened to ${length.toFixed(1)}s to fit the clip.`
     }
 
     if (!canScratch(clipDuration)) {
@@ -60,7 +70,7 @@ export async function renderClip(state: AppState): Promise<RenderResult> {
       scratchBuffer = await conformScratchSample(scratch.customBuffer, sampleRate, channels, length)
     } else {
       const style = SCRATCH_STYLES[scratch.style]
-      const musicEnd = overlay ? clipDuration - length : clipDuration
+      const musicEnd = append ? clipDuration : clipDuration - length
       // The gesture reads from the track around the cut, not just from the
       // selection: styles that keep rolling forward (power down, the lurch at
       // the start of a needle drag) need the audio on the far side of it.
@@ -73,10 +83,10 @@ export async function renderClip(state: AppState): Promise<RenderResult> {
     }
   }
 
-  const overlay = scratch.placement === 'overlay'
   const scratchDuration = scratchBuffer ? scratchBuffer.length / sampleRate : 0
+  // Only an overlay cuts the music short; a mix plays over the top of it.
   const musicDuration = scratchBuffer && overlay ? clipDuration - scratchDuration : clipDuration
-  const outDuration = scratchBuffer && !overlay ? clipDuration + scratchDuration : clipDuration
+  const outDuration = scratchBuffer && append ? clipDuration + scratchDuration : clipDuration
 
   const ctx = new OfflineAudioContext(channels, Math.max(1, Math.round(outDuration * sampleRate)), sampleRate)
 
@@ -91,7 +101,8 @@ export async function renderClip(state: AppState): Promise<RenderResult> {
     half,
     state.fades.fadeIn ? Math.max(state.fades.fadeInLength, EDGE_FADE) : EDGE_FADE,
   )
-  const fadeOutRequested = state.fades.fadeOut && !scratchBuffer
+  // A mix leaves the music to end on its own terms, so it can still fade out.
+  const fadeOutRequested = state.fades.fadeOut && (!scratchBuffer || placement === 'mix')
   const fadeOut = Math.min(
     half,
     fadeOutRequested ? Math.max(state.fades.fadeOutLength, EDGE_FADE) : EDGE_FADE,
@@ -103,7 +114,11 @@ export async function renderClip(state: AppState): Promise<RenderResult> {
   musicGain.gain.linearRampToValueAtTime(0, musicDuration)
   music.start(0, 0, musicDuration)
 
-  const scratchStart = scratchBuffer ? (overlay ? musicDuration : clipDuration) : null
+  const scratchStart = scratchBuffer
+    ? append
+      ? clipDuration
+      : Math.max(0, clipDuration - scratchDuration)
+    : null
   if (scratchBuffer && scratchStart !== null) {
     const scratchNode = ctx.createBufferSource()
     scratchNode.buffer = scratchBuffer

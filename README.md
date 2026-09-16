@@ -42,8 +42,10 @@ npm run preview   # serve the production build
 **Record scratch**
 
 - Off by default. Needs a clip of at least 3 seconds.
-- _Overlay_ (default) replaces the final second of the clip; _Append_ plays the scratch
-  after the full selection, making the output about a second longer.
+- Three placements: _Overlay_ (default) cuts the music and replaces the tail of the clip;
+  _Append_ plays the ending after the full selection, making the output longer; _Mix_ lays it
+  over the top of the last few seconds while the music runs to its own end. A mix is the one
+  placement that leaves the fade-out available, since the music still ends on its own terms.
 - Five built-in endings, all synthesized from the track's own audio — a position curve read
   out of the source plus filtered surface noise, so nothing licensed is bundled:
   - **Classic scratch** (1s) — back, forward, back, then a coast to a dead stop.
@@ -63,8 +65,8 @@ npm run preview   # serve the production build
 
 **Polish and export**
 
-- Optional fade-in (0–3s), fade-out (switched off while the scratch is the ending), and
-  peak normalization.
+- Optional fade-in (0–3s), fade-out (switched off while the scratch is the ending, but
+  available with a mix), and peak normalization.
 - MP3 (128/192/320 kbps), FLAC, or WAV. Sample rate and channel count are preserved;
   more than two channels are folded down to stereo.
 - Filename defaults to `{original}_snippet_{mm-ss}_{length}s.{ext}` and is editable.

@@ -154,7 +154,8 @@ export class ControlsPanel {
     this.fadeOutEnabled.checked = fades.fadeOut
     this.fadeOutLength.value = String(fades.fadeOutLength)
     this.fadeOutOut.value = `${fades.fadeOutLength.toFixed(1)}s`
-    const fadeOutBlocked = scratch.enabled && scratchAvailable
+    // A mix lets the music finish on its own terms, so the fade-out still applies.
+    const fadeOutBlocked = scratch.enabled && scratchAvailable && scratch.placement !== 'mix'
     this.fadeOutEnabled.disabled = fadeOutBlocked
     this.fadeOutLength.disabled = fadeOutBlocked
     this.fadeOutNote.textContent = fadeOutBlocked ? 'The scratch is the ending, so the fade-out is off.' : ''
