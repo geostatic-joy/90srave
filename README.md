@@ -35,6 +35,9 @@ npm run preview   # serve the production build
   with the region in both directions, and clamp out-of-range values instead of rejecting them.
 - Nudge buttons for the start and end (±1s, ±0.1s), a **Reset to 90s** button, a 1-second
   minimum, and clamping that keeps the region inside the track.
+- The window is marked with thick edges (and chunky grab handles once it is resizable), and
+  everything outside it is shaded back. Moving the window stops preview playback, since
+  whatever is playing is no longer the clip you are looking at.
 
 **Record scratch**
 

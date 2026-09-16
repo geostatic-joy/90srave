@@ -175,7 +175,11 @@ function applySelection(next: Selection): void {
   state.endTime = next.end
   waveform.setRegion(next.start, next.end)
   if (!filenameEdited) state.export.filename = defaultFilename()
-  if (changed) invalidateRender()
+  if (changed) {
+    // Moving the window makes whatever is playing the wrong clip.
+    player.stop()
+    invalidateRender()
+  }
   refreshPanels()
 }
 
