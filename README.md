@@ -106,6 +106,17 @@ Two details worth knowing:
 and before each build. If the FLAC worker cannot start for any reason, the export falls back
 to WAV and says so.
 
+## The plan
+
+The original build plan this was written from is kept at [`docs/build-plan.md`](docs/build-plan.md).
+Two places where the build departs from it:
+
+- The plan does not mention sample-rate sniffing, but "preserve source sample rate" is not
+  reachable without it — see the note above.
+- The plan asks for the end and length fields to be read-only while the length is locked _and_
+  for editing them to switch custom length on. Both hold here: the fields are read-only, and a
+  click or keystroke on one switches custom length on first.
+
 ## Tests
 
 End-to-end checks drive the built app in Chromium, export real files, and measure the audio
