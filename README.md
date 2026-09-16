@@ -44,12 +44,20 @@ npm run preview   # serve the production build
 - Off by default. Needs a clip of at least 3 seconds.
 - _Overlay_ (default) replaces the final second of the clip; _Append_ plays the scratch
   after the full selection, making the output about a second longer.
-- The built-in scratch is synthesized from the clip's own final moments — a playback
-  position sweep (backwards, forwards, backwards, then a coast to a dead stop) over a
-  burst of filtered surface noise. Nothing licensed is bundled.
+- Five built-in endings, all synthesized from the track's own audio — a position curve read
+  out of the source plus filtered surface noise, so nothing licensed is bundled:
+  - **Classic scratch** (1s) — back, forward, back, then a coast to a dead stop.
+  - **Chatter run** (1.6s) — six shrinking back-and-forth swings that settle onto the cut.
+  - **Spin-back rewind** (1.5s) — the record yanked backwards, faster and faster, then dropped.
+  - **Needle drag** (2s) — someone bumps the turntable and the needle skids across the record,
+    lurching forward before the long scrape.
+  - **Power down** (2.5s) — the turntable switched off: the music keeps rolling forward past
+    the cut while the platter coasts to a halt and the pitch sags with it.
+- Picking an ending sets the length slider to that ending's natural length; move it from there.
 - Or upload your own scratch sample, which gets resampled and re-channelled to match.
-- Scratch length runs from 0.3s to 5s. It stretches the synthesized gesture into a slower,
-  more laboured stop, and trims a custom sample (which loads at its own length to start with).
+- Scratch length runs from 0.3s to 5s. The gestures are defined in normalized time, so a
+  longer setting stretches the same motion into a slower one; for a custom sample it trims
+  instead (the sample loads at its own length to start with).
   An overlaid scratch is capped so at least half a second of music survives in front of it.
 - Scratch volume runs from 0 to 150%.
 

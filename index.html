@@ -121,11 +121,11 @@
               <legend>Placement</legend>
               <label class="check">
                 <input type="radio" name="scratch-placement" value="overlay" checked />
-                <span>Overlay — scratch replaces the last second of the clip</span>
+                <span>Overlay — the ending replaces the tail of the clip</span>
               </label>
               <label class="check">
                 <input type="radio" name="scratch-placement" value="append" />
-                <span>Append — scratch plays after the full selection</span>
+                <span>Append — the ending plays after the full selection</span>
               </label>
             </fieldset>
 
@@ -135,6 +135,11 @@
                 <input type="radio" name="scratch-source" value="synth" checked />
                 <span>Built-in (synthesized from your track)</span>
               </label>
+              <div class="style-field">
+                <label for="scratch-style">Ending</label>
+                <select id="scratch-style"></select>
+                <p id="scratch-style-hint" class="note"></p>
+              </div>
               <label class="check">
                 <input type="radio" name="scratch-source" value="custom" />
                 <span>Custom sample</span>

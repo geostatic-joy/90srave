@@ -298,6 +298,20 @@ select:focus {
   padding: 0 4px;
 }
 
+.style-field {
+  margin: 2px 0 4px 24px;
+  max-width: 420px;
+}
+
+.style-field label {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-dim);
+  margin-bottom: 4px;
+}
+
 .slider-row {
   display: flex;
   align-items: center;

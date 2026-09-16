@@ -421,6 +421,84 @@ check(
   `music ends at ${(overlayLongDiff / sr).toFixed(3)}s`,
 )
 
+// ------------------------------------------------------------ scratch styles
+
+section('Scratch styles')
+const zcr = (data, from, to) => {
+  let crossings = 0
+  for (let i = Math.max(1, from); i < to; i++) {
+    if (data[i] >= 0 !== data[i - 1] >= 0) crossings++
+  }
+  return crossings / Math.max(1, to - from)
+}
+
+const STYLES = [
+  { id: 'classic', length: 1 },
+  { id: 'chatter', length: 1.6 },
+  { id: 'rewind', length: 1.5 },
+  { id: 'needle-drag', length: 2 },
+  { id: 'power-down', length: 2.5 },
+]
+
+const tails = {}
+for (const style of STYLES) {
+  const rendered = await renderWav(`style-${style.id}.wav`, async () => {
+    await page.check('#scratch-enabled')
+    await page.check('input[name="scratch-placement"][value="append"]')
+    await page.selectOption('#scratch-style', style.id)
+  })
+  const expected = 20 + style.length
+  check(
+    `${style.id}: appends its own default length`,
+    Math.abs(rendered.duration - expected) <= 0.05,
+    `${rendered.duration.toFixed(4)}s, wanted ${expected}s`,
+  )
+  const from = Math.round(20 * sr)
+  tails[style.id] = rendered.left.slice(from)
+  check(`${style.id}: the ending carries audio`, rms(rendered.left, from, rendered.frames) > 0.005)
+  check(`${style.id}: the ending lands on silence`, Math.abs(rendered.left[rendered.frames - 1]) < 0.01)
+}
+
+let distinct = true
+const ids = STYLES.map((style) => style.id)
+for (let i = 0; i < ids.length; i++) {
+  for (let j = i + 1; j < ids.length; j++) {
+    const a = tails[ids[i]]
+    const b = tails[ids[j]]
+    const span = Math.min(a.length, b.length)
+    let diff = 0
+    for (let k = 0; k < span; k++) diff += Math.abs(a[k] - b[k])
+    if (diff / span < 0.02) distinct = false
+  }
+}
+check('every ending sounds different from the others', distinct)
+
+const powerDown = tails['power-down']
+const pdEarly = zcr(powerDown, 0, Math.round(powerDown.length * 0.3))
+const pdLate = zcr(powerDown, Math.round(powerDown.length * 0.55), Math.round(powerDown.length * 0.85))
+check(
+  'power down: the pitch sags as the platter dies',
+  pdLate < pdEarly * 0.7,
+  `${pdEarly.toFixed(4)} -> ${pdLate.toFixed(4)}`,
+)
+
+const rewind = tails.rewind
+const rwEarly = zcr(rewind, 0, Math.round(rewind.length * 0.3))
+const rwLate = zcr(rewind, Math.round(rewind.length * 0.5), Math.round(rewind.length * 0.85))
+check(
+  'rewind: the pitch climbs as the spin-back accelerates',
+  rwLate > rwEarly * 1.3,
+  `${rwEarly.toFixed(4)} -> ${rwLate.toFixed(4)}`,
+)
+
+const dragEnergy = rms(tails['needle-drag'], 0, tails['needle-drag'].length)
+const classicEnergy = rms(tails.classic, 0, tails.classic.length)
+check(
+  'needle drag: the skid is noisier than a clean scratch',
+  zcr(tails['needle-drag'], 0, tails['needle-drag'].length) > zcr(tails.classic, 0, tails.classic.length),
+  `drag rms ${dragEnergy.toFixed(3)}, classic rms ${classicEnergy.toFixed(3)}`,
+)
+
 check('fade-in ramps up from silence', rms(polished.left, 0, 2205) < rms(polished.left, sr, sr + 2205))
 let peak = 0
 for (let i = 0; i < polished.frames; i++) peak = Math.max(peak, Math.abs(polished.left[i]))
