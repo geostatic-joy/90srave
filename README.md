@@ -59,10 +59,14 @@ npm run preview   # serve the production build
 - Or use your own sound effect: pick one from the **Sound effect** dropdown, which lists the
   [`public/sfx/`](public/sfx/) folder, or upload a file. Either way it is resampled and
   re-channelled to match the clip.
-- Scratch length runs from 0.3s to 5s. The gestures are defined in normalized time, so a
-  longer setting stretches the same motion into a slower one; for a custom sample it trims
-  instead (the sample loads at its own length to start with).
-  An overlaid scratch is capped so at least half a second of music survives in front of it.
+- Scratch length runs from 0.3s to 5s. The built-in gestures are defined in normalized time,
+  so a longer setting stretches the same motion into a slower one. A custom sample loads at
+  its own length and then follows the slider, either by **stretching** — varispeed, so it
+  slows down and drops in pitch the way a turntable would — or by **trimming**, which can
+  only shorten it. An overlaid scratch is capped so at least half a second of music survives
+  in front of it.
+- **Play sample** auditions a custom sample on its own, at the length, fit and volume the
+  clip would use it at.
 - Scratch volume runs from 0 to 150%.
 
 **Polish and export**

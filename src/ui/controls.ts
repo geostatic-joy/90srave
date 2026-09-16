@@ -1,6 +1,6 @@
 import type { SfxEntry } from '../audio/library'
 import { SFX_FOLDER } from '../audio/library'
-import { SCRATCH_STYLE_LIST, type ScratchStyleId } from '../audio/scratch'
+import { SCRATCH_STYLE_LIST, type ScratchFit, type ScratchStyleId } from '../audio/scratch'
 import type { AppState, Bitrate, ExportFormat, ScratchPlacement, ScratchSource } from '../types'
 import { byId, setStatus } from '../util/dom'
 
@@ -11,6 +11,8 @@ export interface ControlsHandlers {
   onScratchStyle: (value: ScratchStyleId) => void
   onScratchFile: (file: File) => void
   onScratchLibrary: (entry: SfxEntry) => void
+  onScratchFit: (value: ScratchFit) => void
+  onScratchPreview: () => void
   onScratchLength: (value: number) => void
   onScratchVolume: (value: number) => void
   onFadeIn: (enabled: boolean, length: number) => void
@@ -32,8 +34,11 @@ export class ControlsPanel {
   private scratchLibraryField = byId<HTMLElement>('scratch-library-field')
   private scratchLibraryHint = byId<HTMLElement>('scratch-library-hint')
   private library: SfxEntry[] = []
+  private scratchFit = byId<HTMLSelectElement>('scratch-fit')
+  private scratchFitField = byId<HTMLElement>('scratch-fit-field')
   private scratchFileButton = byId<HTMLButtonElement>('scratch-file-button')
   private scratchFileInput = byId<HTMLInputElement>('scratch-file-input')
+  private scratchPreview = byId<HTMLButtonElement>('scratch-preview')
   private scratchFileName = byId<HTMLElement>('scratch-file-name')
   private scratchLength = byId<HTMLInputElement>('scratch-length')
   private scratchLengthOut = byId<HTMLOutputElement>('scratch-length-out')
@@ -86,6 +91,12 @@ export class ControlsPanel {
       const entry = this.library.find((sound) => sound.file === this.scratchLibrary.value)
       if (entry) handlers.onScratchLibrary(entry)
     })
+
+    this.scratchPreview.addEventListener('click', () => handlers.onScratchPreview())
+
+    this.scratchFit.addEventListener('change', () =>
+      handlers.onScratchFit(this.scratchFit.value as ScratchFit),
+    )
 
     this.scratchFileButton.addEventListener('click', () => this.scratchFileInput.click())
     this.scratchFileInput.addEventListener('change', () => {
@@ -157,6 +168,10 @@ export class ControlsPanel {
     this.scratchFileName.textContent = scratch.customName ?? 'No sample loaded'
     const selected = this.library.find((sound) => sound.label === scratch.customName)
     this.scratchLibrary.value = selected?.file ?? ''
+    this.scratchPreview.disabled = !scratch.customBuffer
+    this.scratchFit.value = scratch.fit
+    // Only meaningful once there is a sample for the length to act on.
+    this.scratchFitField.hidden = scratch.source !== 'custom'
     this.scratchStyle.value = scratch.style
     this.scratchStyle.disabled = scratch.source !== 'synth'
     this.scratchStyleHint.textContent =

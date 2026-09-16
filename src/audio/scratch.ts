@@ -276,24 +276,45 @@ export function synthesizeScratch(
   return out
 }
 
+/** How the scratch length applies to a sample the user supplied. */
+export type ScratchFit = 'trim' | 'stretch'
+
+/** Play a buffer back at a different speed, so it lands on `duration`. */
+async function varispeed(sample: AudioBuffer, duration: number): Promise<AudioBuffer> {
+  const sampleRate = sample.sampleRate
+  const length = Math.max(2, Math.round(duration * sampleRate))
+  const ctx = new OfflineAudioContext(sample.numberOfChannels, length, sampleRate)
+  const node = ctx.createBufferSource()
+  node.buffer = sample
+  // Slower than 1 stretches it out and drops the pitch, the way a turntable would.
+  node.playbackRate.value = Math.max(0.01, sample.duration / duration)
+  node.connect(ctx.destination)
+  node.start()
+  return ctx.startRendering()
+}
+
 /**
  * Make a user-supplied scratch sample line up with the clip: same sample rate,
- * same channel count, trimmed to `maxDuration`, with click-free edges.
+ * same channel count, and either trimmed to `duration` or stretched onto it,
+ * with click-free edges.
  */
 export async function conformScratchSample(
   sample: AudioBuffer,
   sampleRate: number,
   channels: number,
-  maxDuration: number,
+  duration: number,
+  fit: ScratchFit = 'trim',
 ): Promise<AudioBuffer> {
   const resampled = await conformSampleRate(sample, sampleRate)
   const rechanneled = conformChannels(resampled, channels)
-  const maxSamples = Math.max(2, Math.round(maxDuration * sampleRate))
-  const length = Math.min(rechanneled.length, maxSamples)
+  const wanted = Math.max(2, Math.round(duration * sampleRate))
+  // Trimming can only ever shorten a sample; stretching hits the length exactly.
+  const fitted = fit === 'stretch' ? await varispeed(rechanneled, duration) : rechanneled
+  const length = fit === 'stretch' ? fitted.length : Math.min(fitted.length, wanted)
   const out = createAudioBuffer(channels, length, sampleRate)
   const fade = Math.max(1, Math.round(EDGE_FADE * sampleRate))
   for (let c = 0; c < channels; c++) {
-    const data = rechanneled.getChannelData(c).subarray(0, length)
+    const data = fitted.getChannelData(c).subarray(0, length)
     const target = out.getChannelData(c)
     target.set(data)
     for (let i = 0; i < fade && i < length; i++) {

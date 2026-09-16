@@ -536,6 +536,83 @@ if (!existsSync(join(projectRoot, 'dist'))) {
   )
 }
 
+// ---------------------------------------------------- stretching a sample
+
+section('Stretching a custom sample')
+async function renderSample(name, length, fit) {
+  return renderWav(name, async () => {
+    await loadCustomSample()
+    await page.check('input[name="scratch-placement"][value="append"]')
+    await page.selectOption('#scratch-fit', fit)
+    await page.locator('#scratch-length').fill(String(length))
+    await page.locator('#scratch-length').dispatchEvent('change')
+  })
+}
+
+await page.goto(APP_URL)
+await loadTrack(fixtures.track)
+check(
+  'the sample preview is off until a sample is loaded',
+  await page.locator('#scratch-preview').isDisabled(),
+)
+await page.check('#scratch-enabled')
+await loadCustomSample()
+await page.click('#scratch-preview')
+await page.waitForFunction(
+  () => /Playing short-2s\.wav/.test(document.querySelector('#preview-status').textContent),
+  null,
+  { timeout: 60_000 },
+)
+check('the sample plays on its own', true, await page.textContent('#preview-status'))
+await page.click('#stop')
+
+const natural = await renderSample('fit-natural.wav', 2.5, 'stretch')
+const stretched = await renderSample('fit-stretched.wav', 5, 'stretch')
+const squeezed = await renderSample('fit-squeezed.wav', 1.3, 'stretch')
+const trimmed = await renderSample('fit-trimmed.wav', 5, 'trim')
+
+check(
+  'at its own length, stretching changes nothing',
+  Math.abs(natural.duration - 22.5) <= 0.05,
+  `${natural.duration.toFixed(4)}s`,
+)
+check(
+  'a 2.5s sample stretches out to 5s',
+  Math.abs(stretched.duration - 25) <= 0.05,
+  `${stretched.duration.toFixed(4)}s`,
+)
+check(
+  'and squeezes down to 1.3s',
+  Math.abs(squeezed.duration - 21.3) <= 0.05,
+  `${squeezed.duration.toFixed(4)}s`,
+)
+check(
+  'trimming still cannot make a sample longer',
+  Math.abs(trimmed.duration - 22.5) <= 0.05,
+  `${trimmed.duration.toFixed(4)}s`,
+)
+
+const tailZcr = (wav) => {
+  const from = Math.round(20.2 * sr)
+  const to = Math.min(wav.frames, Math.round(21 * sr))
+  let crossings = 0
+  for (let i = from + 1; i < to; i++) {
+    if (wav.left[i] >= 0 !== wav.left[i - 1] >= 0) crossings++
+  }
+  return crossings / Math.max(1, to - from - 1)
+}
+const naturalZcr = tailZcr(natural)
+check(
+  'stretching drops the pitch like a slowed record',
+  Math.abs(tailZcr(stretched) / naturalZcr - 0.5) < 0.1,
+  `${naturalZcr.toFixed(4)} -> ${tailZcr(stretched).toFixed(4)}`,
+)
+check(
+  'squeezing raises it',
+  Math.abs(tailZcr(squeezed) / naturalZcr - 2.5 / 1.3) < 0.3,
+  `${naturalZcr.toFixed(4)} -> ${tailZcr(squeezed).toFixed(4)}`,
+)
+
 // ------------------------------------------------------------ scratch styles
 
 section('Scratch styles')

@@ -1,4 +1,9 @@
-import { DEFAULT_SCRATCH_LENGTH, DEFAULT_SCRATCH_STYLE, type ScratchStyleId } from './audio/scratch'
+import {
+  DEFAULT_SCRATCH_LENGTH,
+  DEFAULT_SCRATCH_STYLE,
+  type ScratchFit,
+  type ScratchStyleId,
+} from './audio/scratch'
 
 export type ScratchPlacement = 'overlay' | 'append' | 'mix'
 export type ScratchSource = 'synth' | 'custom'
@@ -13,6 +18,8 @@ export interface ScratchState {
   style: ScratchStyleId
   customBuffer: AudioBuffer | null
   customName: string | null
+  /** Whether the length trims a custom sample or stretches it onto that length. */
+  fit: ScratchFit
   /** Seconds. Trims a custom sample; stretches the synthesized gesture. */
   length: number
   /** 0..1.5 (UI shows 0–150%) */
@@ -58,6 +65,7 @@ export function createInitialState(): AppState {
       style: DEFAULT_SCRATCH_STYLE,
       customBuffer: null,
       customName: null,
+      fit: 'stretch',
       length: DEFAULT_SCRATCH_LENGTH,
       volume: 1,
     },
