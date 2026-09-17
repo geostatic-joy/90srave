@@ -635,6 +635,11 @@ const STYLES = [
   { id: 'cd-skip', length: 1.8 },
   { id: 'tape-chew', length: 2.5 },
   { id: 'radio-tune-out', length: 3 },
+  { id: 'dub-echo', length: 3 },
+  { id: 'underwater', length: 3 },
+  { id: 'digital-death', length: 2 },
+  { id: 'dissolve', length: 2.5 },
+  { id: 'doppler', length: 2 },
 ]
 
 const tails = {}
@@ -717,6 +722,83 @@ check(
   staticLate > staticEarly * 2,
   `${staticEarly.toFixed(4)} -> ${staticLate.toFixed(4)}`,
 )
+
+// Echo repeats show up as self-similarity one delay time apart.
+const selfSimilarity = (tail, lag) => {
+  let ab = 0
+  let aa = 0
+  let bb = 0
+  for (let i = lag; i < tail.length; i++) {
+    ab += tail[i] * tail[i - lag]
+    aa += tail[i] * tail[i]
+    bb += tail[i - lag] * tail[i - lag]
+  }
+  return ab / Math.max(1e-9, Math.sqrt(aa * bb))
+}
+const echoLag = Math.round(3 * 0.13 * sr)
+check(
+  'dub echo: the throw repeats one delay apart',
+  selfSimilarity(tails['dub-echo'], echoLag) > 0.25 &&
+    selfSimilarity(tails['dub-echo'], echoLag) > selfSimilarity(tails.classic, echoLag) + 0.2,
+  `dub ${selfSimilarity(tails['dub-echo'], echoLag).toFixed(3)} vs classic ${selfSimilarity(tails.classic, echoLag).toFixed(3)}`,
+)
+
+// How much of a window's energy sits in the top end.
+const brightness = (tail, from, to) => {
+  let diff = 0
+  let total = 0
+  for (let i = Math.max(1, Math.round(from * tail.length)); i < Math.round(to * tail.length); i++) {
+    diff += (tail[i] - tail[i - 1]) ** 2
+    total += tail[i] * tail[i]
+  }
+  return diff / Math.max(1e-12, total)
+}
+
+// A lowpass and a volume drop look identical on a pure tone, so the filter
+// sweeps get measured against broadband material instead.
+await page.goto(APP_URL)
+await loadTrack(fixtures.noise)
+await page.selectOption('#format-select', 'wav')
+await page.check('#scratch-enabled')
+await page.check('input[name="scratch-placement"][value="append"]')
+await page.selectOption('#scratch-style', 'underwater')
+await page.waitForTimeout(700)
+const drowned = readWav((await exportTo('style-underwater-noise.wav')).target)
+const water = drowned.left.slice(Math.round((drowned.duration - 3) * sr))
+const waterEarly = brightness(water, 0, 0.2)
+const waterLate = brightness(water, 0.6, 0.85)
+check(
+  'underwater: the top end closes off',
+  waterLate < waterEarly * 0.5,
+  `brightness ${waterEarly.toFixed(4)} -> ${waterLate.toFixed(4)}`,
+)
+
+// Crushing turns a smooth signal into steps and aliasing: broadband junk.
+const dying = tails['digital-death']
+const dyingEarly = brightness(dying, 0, 0.15)
+const dyingLate = brightness(dying, 0.6, 0.85)
+check(
+  'digital death: quantizing roughens the signal up',
+  dyingLate > dyingEarly * 2,
+  `brightness ${dyingEarly.toFixed(4)} -> ${dyingLate.toFixed(4)}`,
+)
+
+const passBy = tails.doppler
+const windowRms = (tail, from, to) => rms(tail, Math.round(from * tail.length), Math.round(to * tail.length))
+check(
+  'pass-by: the level swells in the middle and recedes',
+  windowRms(passBy, 0.35, 0.55) > windowRms(passBy, 0, 0.15) &&
+    windowRms(passBy, 0.35, 0.55) > windowRms(passBy, 0.75, 0.9) * 1.5,
+  `${windowRms(passBy, 0, 0.15).toFixed(3)} / ${windowRms(passBy, 0.35, 0.55).toFixed(3)} / ${windowRms(passBy, 0.75, 0.9).toFixed(3)}`,
+)
+
+const grains = tails.dissolve
+let gaps = 0
+const grainWindow = Math.round(sr * 0.01)
+for (let from = 0; from + grainWindow < grains.length; from += grainWindow) {
+  if (rms(grains, from, from + grainWindow) < 0.01) gaps++
+}
+check('dissolve: the audio breaks into scattered grains', gaps > 20, `${gaps} near-silent 10ms windows`)
 
 const dragEnergy = rms(tails['needle-drag'], 0, tails['needle-drag'].length)
 const classicEnergy = rms(tails.classic, 0, tails.classic.length)

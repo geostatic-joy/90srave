@@ -83,7 +83,12 @@ export class ControlsPanel {
       option.value = style.id
       option.textContent = style.label
       groups[style.group] ??= Object.assign(document.createElement('optgroup'), {
-        label: style.group === 'turntable' ? 'Hand on the record' : 'The machine gives up',
+        label:
+          style.group === 'turntable'
+            ? 'Hand on the record'
+            : style.group === 'malfunction'
+              ? 'The machine gives up'
+              : 'Taken somewhere else',
       })
       groups[style.group].appendChild(option)
     }
