@@ -10,6 +10,36 @@ import { Mp3Encoder } from '@breezystack/lamejs'
 
 export const FIXTURE_DIR = join(dirname(fileURLToPath(import.meta.url)), '.fixtures')
 
+/** Broadband material, so filter sweeps are measurable at all. */
+function writeNoiseWav(path, { sampleRate, channels, seconds }) {
+  const frames = Math.round(sampleRate * seconds)
+  const header = Buffer.alloc(44)
+  const data = Buffer.alloc(frames * channels * 2)
+  header.write('RIFF', 0)
+  header.writeUInt32LE(36 + data.length, 4)
+  header.write('WAVE', 8)
+  header.write('fmt ', 12)
+  header.writeUInt32LE(16, 16)
+  header.writeUInt16LE(1, 20)
+  header.writeUInt16LE(channels, 22)
+  header.writeUInt32LE(sampleRate, 24)
+  header.writeUInt32LE(sampleRate * channels * 2, 28)
+  header.writeUInt16LE(channels * 2, 32)
+  header.writeUInt16LE(16, 34)
+  header.write('data', 36)
+  header.writeUInt32LE(data.length, 40)
+  // Deterministic pseudo-noise, so a fixture is always the same fixture.
+  let seed = 12345
+  for (let i = 0; i < frames; i++) {
+    for (let c = 0; c < channels; c++) {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff
+      const value = (seed / 0x3fffffff - 1) * 0.5
+      data.writeInt16LE(Math.round(value * 24000), (i * channels + c) * 2)
+    }
+  }
+  writeFileSync(path, Buffer.concat([header, data]))
+}
+
 function writeWav(path, { sampleRate, channels, seconds, freq = 330 }) {
   const frames = Math.round(sampleRate * seconds)
   const header = Buffer.alloc(44)
@@ -68,6 +98,7 @@ export function ensureFixtures() {
     short: join(FIXTURE_DIR, 'short-2s.wav'),
     hires: join(FIXTURE_DIR, 'hires-96k-10s.wav'),
     lofi: join(FIXTURE_DIR, 'lofi-22k-10s.wav'),
+    noise: join(FIXTURE_DIR, 'noise-10s.wav'),
   }
   if (!existsSync(files.track)) writeMp3(files.track)
   if (!existsSync(files.mono48k)) writeWav(files.mono48k, { sampleRate: 48000, channels: 1, seconds: 45 })
@@ -77,6 +108,7 @@ export function ensureFixtures() {
     writeWav(files.hires, { sampleRate: 96000, channels: 2, seconds: 10, freq: 500 })
   if (!existsSync(files.lofi))
     writeWav(files.lofi, { sampleRate: 22050, channels: 1, seconds: 10, freq: 300 })
+  if (!existsSync(files.noise)) writeNoiseWav(files.noise, { sampleRate: 44100, channels: 2, seconds: 10 })
   return files
 }
 

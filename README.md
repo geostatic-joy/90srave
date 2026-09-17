@@ -46,8 +46,9 @@ npm run preview   # serve the production build
   _Append_ plays the ending after the full selection, making the output longer; _Mix_ lays it
   over the top of the last few seconds while the music runs to its own end. A mix is the one
   placement that leaves the fade-out available, since the music still ends on its own terms.
-- Five built-in endings, all synthesized from the track's own audio — a position curve read
-  out of the source plus filtered surface noise, so nothing licensed is bundled:
+- Fifteen built-in endings, all synthesized from the track's own audio — a position or speed
+  curve read out of the source, plus filtered noise, tones, filter sweeps, bit crushing and a
+  feedback delay, so nothing licensed is bundled. _Hand on the record:_
   - **Classic scratch** (1s) — back, forward, back, then a coast to a dead stop.
   - **Chatter run** (1.6s) — six shrinking back-and-forth swings that settle onto the cut.
   - **Spin-back rewind** (1.5s) — the record yanked backwards, faster and faster, then dropped.
@@ -55,6 +56,32 @@ npm run preview   # serve the production build
     lurching forward before the long scrape.
   - **Power down** (2.5s) — the turntable switched off: the music keeps rolling forward past
     the cut while the platter coasts to a halt and the pitch sags with it.
+
+  _The machine gives up:_
+  - **Power surge** (2s) — the deck browns out. The motor hunts either side of normal and
+    lurches backwards on the worst sags, the sound gates in and out, and 60 Hz mains hum
+    swells underneath until it all dies.
+  - **Warped pressing** (3s) — a record with a bend in it: the pitch wows about once per
+    revolution, deeper every turn, over a low thump, until the needle gives up.
+  - **CD skip** (1.8s) — the last fragment sticks and repeats, each pass shorter than the one
+    before, seams dipped so the stutter glitches without clicking.
+  - **Tape chew** (2.5s) — the machine eats the tape: the speed sags hard then crawls, flutter
+    wobbles it, the signal drops out where the tape loses the head, and it slurs to a stop.
+  - **Radio tune-out** (3s) — the station drifts off the dial. The music keeps playing but
+    static swells over it and a heterodyne whistle climbs away into nothing.
+
+  _Taken somewhere else:_
+  - **Dub echo out** (3s) — the last bar is thrown into a damped feedback delay: the dry
+    signal is pulled and the repeats ring away on their own.
+  - **Underwater** (3s) — the track sinks. A two-pole lowpass closes from 9 kHz down to about
+    180 Hz while the pitch sags and a slow warble sets in.
+  - **Digital death** (2s) — the player degrades: sample rate collapses from 48 kHz to a few
+    hundred hertz and bit depth from 16 to about two, until it is a buzz that freezes over.
+  - **Dissolve** (2.5s) — the track crumbles into 60 ms grains that scatter backwards, spread
+    further apart, and thin out until nothing is left.
+  - **Pass-by** (2s) — the track flies past like a car: the pitch drops through the middle,
+    the level swells and recedes, and it muffles as it goes away from you.
+
 - Picking an ending sets the length slider to that ending's natural length; move it from there.
 - Or use your own sound effect: pick one from the **Sound effect** dropdown, which lists the
   [`public/sfx/`](public/sfx/) folder, or upload a file. Either way it is resampled and

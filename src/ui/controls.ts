@@ -77,12 +77,22 @@ export class ControlsPanel {
       })
     }
 
+    const groups: Record<string, HTMLOptGroupElement> = {}
     for (const style of SCRATCH_STYLE_LIST) {
       const option = document.createElement('option')
       option.value = style.id
       option.textContent = style.label
-      this.scratchStyle.appendChild(option)
+      groups[style.group] ??= Object.assign(document.createElement('optgroup'), {
+        label:
+          style.group === 'turntable'
+            ? 'Hand on the record'
+            : style.group === 'malfunction'
+              ? 'The machine gives up'
+              : 'Taken somewhere else',
+      })
+      groups[style.group].appendChild(option)
     }
+    for (const group of Object.values(groups)) this.scratchStyle.appendChild(group)
     this.scratchStyle.addEventListener('change', () =>
       handlers.onScratchStyle(this.scratchStyle.value as ScratchStyleId),
     )
