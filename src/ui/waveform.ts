@@ -57,7 +57,9 @@ export class WaveformView {
       container: this.container,
       height: 120,
       waveColor: '#6c5f9c',
-      progressColor: '#ff5ea8',
+      // Only a shade brighter: a big progress fill would read as a second
+      // selection now that the playhead roams the whole track.
+      progressColor: '#8d7fc4',
       cursorColor: '#4be0d0',
       cursorWidth: 2,
       normalize: true,
@@ -100,6 +102,15 @@ export class WaveformView {
     })
     wavesurfer.on('interaction', (time: number) => {
       this.handlers.onSeek(time)
+    })
+    // Clicks inside the region are swallowed by the region element, so turn
+    // those into a seek too — the whole waveform should be clickable.
+    regions.on('region-clicked', (region, event) => {
+      if (region.id !== REGION_ID) return
+      const bounds = this.container.getBoundingClientRect()
+      if (bounds.width <= 0) return
+      const ratio = (event.clientX - bounds.left) / bounds.width
+      this.handlers.onSeek(Math.max(0, Math.min(1, ratio)) * this.duration)
     })
   }
 

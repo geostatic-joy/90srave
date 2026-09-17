@@ -42,6 +42,12 @@ let renderToken = 0
 let debounceTimer: number | undefined
 let filenameEdited = false
 let sourceName = 'clip'
+/** Where the playhead sits on the track, in seconds. */
+let playheadTime = 0
+/** Track time the current playback started from, for mapping the playhead. */
+let playheadOrigin = 0
+/** Clip playback is the rendered snippet; track playback is auditioning the source. */
+let playbackMode: 'clip' | 'track' = 'clip'
 
 const waveform = new WaveformView(byId<HTMLElement>('waveform'), {
   onRegionChange: (start, end, side) => {
@@ -49,15 +55,17 @@ const waveform = new WaveformView(byId<HTMLElement>('waveform'), {
     applySelection(setFromRegion(currentSelection(), start, end, trackDuration(), side))
   },
   onRegionCommit: () => refreshPanels(),
-  onSeek: () => {
-    player.stop()
+  onSeek: (time) => {
+    void previewTrack(time)
   },
 })
 
 const player = new PreviewPlayer({
   onTime: (time) => {
-    const position = Math.min(state.startTime + time, trackDuration())
-    waveform.setPlayhead(position)
+    // Clip playback reports time inside the clip; track playback reports time
+    // inside the track. The origin turns either into a position on the waveform.
+    playheadTime = Math.min(playheadOrigin + time, trackDuration())
+    waveform.setPlayhead(playheadTime)
   },
   onEnded: () => {
     setStatus(previewStatus, '')
@@ -202,8 +210,9 @@ function applySelection(next: Selection): void {
   waveform.setRegion(next.start, next.end)
   if (!filenameEdited) state.export.filename = defaultFilename()
   if (changed) {
-    // Moving the window makes whatever is playing the wrong clip.
-    player.stop()
+    // Moving the window makes whatever is playing the wrong clip — but
+    // auditioning the track is unaffected by where the window sits.
+    if (playbackMode === 'clip') player.stop()
     invalidateRender()
   }
   refreshPanels()
@@ -339,8 +348,27 @@ async function preview(fromEnding: boolean): Promise<void> {
   try {
     const result = await ensureRendered()
     const offset = fromEnding ? Math.max(0, result.buffer.duration - ENDING_PREVIEW) : 0
+    playbackMode = 'clip'
+    playheadOrigin = state.startTime
     await player.play(result.buffer, { offset })
     setStatus(previewStatus, `Playing ${formatTime(result.buffer.duration)} clip`)
+  } catch (error) {
+    setStatus(previewStatus, error instanceof Error ? error.message : String(error), 'error')
+  }
+}
+
+/** Click anywhere on the waveform to drop the playhead and hear the track from there. */
+async function previewTrack(time: number): Promise<void> {
+  const source = state.sourceBuffer
+  if (!source) return
+  const from = Math.max(0, Math.min(time, source.duration))
+  playbackMode = 'track'
+  playheadOrigin = 0
+  playheadTime = from
+  waveform.setPlayhead(from)
+  try {
+    await player.play(source, { offset: from })
+    setStatus(previewStatus, `Playing the track from ${formatTime(from)}`)
   } catch (error) {
     setStatus(previewStatus, error instanceof Error ? error.message : String(error), 'error')
   }
@@ -403,6 +431,14 @@ byId<HTMLButtonElement>('play-ending').addEventListener('click', () => {
 byId<HTMLButtonElement>('stop').addEventListener('click', () => {
   player.stop()
   setStatus(previewStatus, '')
+})
+byId<HTMLButtonElement>('selection-here').addEventListener('click', () => {
+  // Keep the current length and slide the whole window to the playhead.
+  applySelection(setStart(currentSelection(), playheadTime, trackDuration(), false))
+  // Don't talk over an audition that is still running.
+  if (!player.playing) {
+    setStatus(previewStatus, `Selection starts at ${formatTime(state.startTime)}`)
+  }
 })
 
 refreshPanels()

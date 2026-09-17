@@ -36,8 +36,13 @@ npm run preview   # serve the production build
 - Nudge buttons for the start and end (±1s, ±0.1s), a **Reset to 90s** button, a 1-second
   minimum, and clamping that keeps the region inside the track.
 - The window is marked with thick edges (and chunky grab handles once it is resizable), and
-  everything outside it is shaded back. Moving the window stops preview playback, since
-  whatever is playing is no longer the clip you are looking at.
+  everything outside it is shaded back.
+- Click anywhere on the waveform — inside the window or out — to drop the playhead there and
+  hear the **raw track** from that point, so you can roam around and find your spot.
+  **Move selection to playhead** then drops the window where you are, keeping its length.
+- Moving the window stops clip playback, since whatever is playing is no longer the clip you
+  are looking at. It does not interrupt an audition of the track, which is unaffected by
+  where the window sits.
 
 **Record scratch**
 
@@ -95,6 +100,11 @@ npm run preview   # serve the production build
 - **Play sample** auditions a custom sample on its own, at the length, fit and volume the
   clip would use it at.
 - Scratch volume runs from 0 to 150%.
+
+**Preview**
+
+- **Play selection** and **Play ending** play the rendered clip, effects and all, so they
+  sound exactly like the export. Clicking the waveform plays the source track instead.
 
 **Polish and export**
 
