@@ -1,5 +1,14 @@
 import { getAudioContext, resumeAudioContext } from './context'
 
+export interface PlayOptions {
+  /** Where to start inside the buffer, in seconds. */
+  offset?: number
+  /** Linear gain applied while playing. */
+  gain?: number
+  /** Off for sounds that are not part of the clip, like a sample audition. */
+  followPlayhead?: boolean
+}
+
 export interface PreviewCallbacks {
   /** Playback position inside the rendered clip, in seconds. */
   onTime?: (time: number) => void
@@ -13,6 +22,7 @@ export class PreviewPlayer {
   private startedAt = 0
   private startOffset = 0
   private stopping = false
+  private followPlayhead = true
 
   constructor(private callbacks: PreviewCallbacks = {}) {}
 
@@ -20,13 +30,21 @@ export class PreviewPlayer {
     return this.node !== null
   }
 
-  async play(buffer: AudioBuffer, offset = 0): Promise<void> {
+  async play(buffer: AudioBuffer, options: PlayOptions = {}): Promise<void> {
+    const { offset = 0, gain = 1, followPlayhead = true } = options
     this.stop()
     await resumeAudioContext()
     const ctx = getAudioContext()
     const node = ctx.createBufferSource()
     node.buffer = buffer
-    node.connect(ctx.destination)
+    if (gain === 1) {
+      node.connect(ctx.destination)
+    } else {
+      const gainNode = ctx.createGain()
+      gainNode.gain.value = gain
+      node.connect(gainNode).connect(ctx.destination)
+    }
+    this.followPlayhead = followPlayhead
     node.onended = () => {
       if (this.node === node && !this.stopping) {
         this.teardown()
@@ -69,7 +87,7 @@ export class PreviewPlayer {
     if (!this.node) return
     const ctx = getAudioContext()
     const time = this.startOffset + (ctx.currentTime - this.startedAt)
-    this.callbacks.onTime?.(time)
+    if (this.followPlayhead) this.callbacks.onTime?.(time)
     this.frame = requestAnimationFrame(this.tick)
   }
 }

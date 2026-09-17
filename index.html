@@ -157,7 +157,15 @@
               <div class="button-row">
                 <button type="button" id="scratch-file-button" class="btn btn--tiny">Upload sample…</button>
                 <input type="file" id="scratch-file-input" accept=".mp3,.flac,.wav,audio/*" hidden />
+                <button type="button" id="scratch-preview" class="btn btn--tiny">▶ Play sample</button>
                 <span id="scratch-file-name" class="note">No sample loaded</span>
+              </div>
+              <div class="style-field" id="scratch-fit-field">
+                <label for="scratch-fit">Length applies by</label>
+                <select id="scratch-fit">
+                  <option value="stretch">Stretching — slows or speeds the sample, like a turntable</option>
+                  <option value="trim">Trimming — cuts the sample short</option>
+                </select>
               </div>
               <p id="scratch-library-hint" class="note"></p>
             </fieldset>

@@ -1,9 +1,10 @@
 import './style.css'
 import { decodeFile } from './audio/decode'
 import { PreviewPlayer } from './audio/player'
+import { outputChannelCount } from './audio/buffers'
 import { loadSfxBuffer, loadSfxLibrary, type SfxEntry } from './audio/library'
 import { canScratch, renderClip, type RenderResult } from './audio/render'
-import { MAX_SCRATCH_LENGTH, MIN_SCRATCH_LENGTH, SCRATCH_STYLES } from './audio/scratch'
+import { MAX_SCRATCH_LENGTH, MIN_SCRATCH_LENGTH, SCRATCH_STYLES, conformScratchSample } from './audio/scratch'
 import { downloadBlob } from './export/download'
 import { encodeBuffer } from './export/encode'
 import {
@@ -121,6 +122,14 @@ const controls = new ControlsPanel({
   },
   onScratchLibrary: (entry) => {
     void loadLibrarySample(entry)
+  },
+  onScratchPreview: () => {
+    void previewScratchSample()
+  },
+  onScratchFit: (value) => {
+    state.scratch.fit = value
+    invalidateRender()
+    refreshPanels()
   },
   onScratchLength: (value) => {
     state.scratch.length = value
@@ -330,8 +339,28 @@ async function preview(fromEnding: boolean): Promise<void> {
   try {
     const result = await ensureRendered()
     const offset = fromEnding ? Math.max(0, result.buffer.duration - ENDING_PREVIEW) : 0
-    await player.play(result.buffer, offset)
+    await player.play(result.buffer, { offset })
     setStatus(previewStatus, `Playing ${formatTime(result.buffer.duration)} clip`)
+  } catch (error) {
+    setStatus(previewStatus, error instanceof Error ? error.message : String(error), 'error')
+  }
+}
+
+/** Audition the custom sample on its own, exactly as the clip would use it. */
+async function previewScratchSample(): Promise<void> {
+  const { customBuffer, customName, length, fit, volume } = state.scratch
+  if (!customBuffer || !state.sourceBuffer) return
+  setStatus(previewStatus, 'Rendering sample…')
+  try {
+    const sample = await conformScratchSample(
+      customBuffer,
+      state.sourceBuffer.sampleRate,
+      outputChannelCount(state.sourceBuffer),
+      length,
+      fit,
+    )
+    await player.play(sample, { gain: volume, followPlayhead: false })
+    setStatus(previewStatus, `Playing ${customName ?? 'sample'} (${formatTime(sample.duration)})`)
   } catch (error) {
     setStatus(previewStatus, error instanceof Error ? error.message : String(error), 'error')
   }

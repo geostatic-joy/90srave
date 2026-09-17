@@ -67,7 +67,13 @@ export async function renderClip(state: AppState): Promise<RenderResult> {
     } else if (scratch.source === 'custom' && !scratch.customBuffer) {
       scratchNote = 'No custom scratch sample loaded yet.'
     } else if (scratch.source === 'custom' && scratch.customBuffer) {
-      scratchBuffer = await conformScratchSample(scratch.customBuffer, sampleRate, channels, length)
+      scratchBuffer = await conformScratchSample(
+        scratch.customBuffer,
+        sampleRate,
+        channels,
+        length,
+        scratch.fit,
+      )
     } else {
       const style = SCRATCH_STYLES[scratch.style]
       const musicEnd = append ? clipDuration : clipDuration - length
