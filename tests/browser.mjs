@@ -630,6 +630,11 @@ const STYLES = [
   { id: 'rewind', length: 1.5 },
   { id: 'needle-drag', length: 2 },
   { id: 'power-down', length: 2.5 },
+  { id: 'power-surge', length: 2 },
+  { id: 'warped-vinyl', length: 3 },
+  { id: 'cd-skip', length: 1.8 },
+  { id: 'tape-chew', length: 2.5 },
+  { id: 'radio-tune-out', length: 3 },
 ]
 
 const tails = {}
@@ -681,6 +686,36 @@ check(
   'rewind: the pitch climbs as the spin-back accelerates',
   rwLate > rwEarly * 1.3,
   `${rwEarly.toFixed(4)} -> ${rwLate.toFixed(4)}`,
+)
+
+// Windowed levels, for spotting dropouts.
+const levelSpread = (tail) => {
+  const window = Math.round(sr * 0.05)
+  let quietest = Infinity
+  let loudest = 0
+  for (let from = 0; from + window < tail.length * 0.8; from += window) {
+    const level = rms(tail, from, from + window)
+    quietest = Math.min(quietest, level)
+    loudest = Math.max(loudest, level)
+  }
+  return quietest / Math.max(1e-9, loudest)
+}
+check(
+  'power surge: the sound gates in and out',
+  levelSpread(tails['power-surge']) < levelSpread(tails.classic) * 0.5,
+  `surge ${levelSpread(tails['power-surge']).toFixed(4)} vs classic ${levelSpread(tails.classic).toFixed(4)}`,
+)
+
+const staticEarly = zcr(tails['radio-tune-out'], 0, Math.round(tails['radio-tune-out'].length * 0.25))
+const staticLate = zcr(
+  tails['radio-tune-out'],
+  Math.round(tails['radio-tune-out'].length * 0.55),
+  Math.round(tails['radio-tune-out'].length * 0.85),
+)
+check(
+  'radio tune-out: static swells over the music',
+  staticLate > staticEarly * 2,
+  `${staticEarly.toFixed(4)} -> ${staticLate.toFixed(4)}`,
 )
 
 const dragEnergy = rms(tails['needle-drag'], 0, tails['needle-drag'].length)
