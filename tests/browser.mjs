@@ -269,6 +269,45 @@ const dimmers = await page.evaluate(() =>
 )
 check('the waveform outside the selection is shaded', dimmers.length === 2, JSON.stringify(dimmers))
 
+// -------------------------------------------------------------- auditioning
+
+section('Auditioning the track')
+await page.goto(APP_URL)
+await loadTrack(fixtures.track)
+const strip = await page.locator('#waveform').boundingBox()
+
+// 90% across a two-minute track is about 1:48.
+await page.mouse.click(strip.x + strip.width * 0.9, strip.y + strip.height / 2)
+await page.waitForTimeout(400)
+let status = await page.textContent('#preview-status')
+check(
+  'clicking outside the window plays the track from there',
+  /Playing the track from 1:4[6-9]/.test(status),
+  status,
+)
+
+// The region element sits over the waveform; clicks on it must seek too.
+await page.mouse.click(strip.x + strip.width * 0.3, strip.y + strip.height / 2)
+await page.waitForTimeout(400)
+status = await page.textContent('#preview-status')
+check('clicking inside the window seeks as well', /Playing the track from 0:3[4-9]/.test(status), status)
+
+await page.click('.nudges[data-target="start"] button[data-nudge="1"]')
+await page.waitForTimeout(200)
+status = await page.textContent('#preview-status')
+check('moving the window does not interrupt an audition', /Playing the track/.test(status), status)
+
+await page.click('#selection-here')
+await page.waitForTimeout(200)
+v = await values()
+check(
+  'the window can be dropped on the playhead, keeping its length',
+  v.length === '1:30.0' && v.start === '0:30.0',
+  JSON.stringify({ start: v.start, length: v.length }),
+)
+await page.click('#stop')
+check('stop ends the audition', (await page.textContent('#preview-status')) === '')
+
 // ------------------------------------------------------------------ export
 
 section('Export')
