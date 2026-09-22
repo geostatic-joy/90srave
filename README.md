@@ -3,8 +3,9 @@
 A browser-only tool for cutting a 90-second snippet out of an MP3 or FLAC, landing it
 with a record scratch, and exporting the result as MP3, FLAC or WAV.
 
-Nothing is uploaded anywhere: decoding, editing and encoding all happen in the tab, and
-the app works offline after the first load.
+Nothing is uploaded anywhere: decoding, editing and encoding all happen in the tab. Once the
+page has loaded it makes no network requests at all, apart from fetching a sound effect from
+its own folder if you pick one.
 
 ## Quick start
 
@@ -212,6 +213,27 @@ npm run test:browser          # override APP_URL to point somewhere else
 ```
 
 Fixtures are generated on first run into `tests/.fixtures`.
+
+## Deploying
+
+There is no backend. `npm run build` produces a `dist/` folder of static files — about a
+megabyte — that any static host will serve: GitHub Pages, Netlify, Vercel, Cloudflare Pages,
+S3, plain nginx. No rewrite rules (it is one page), no environment variables, and no
+cross-origin isolation headers (nothing here uses `SharedArrayBuffer`).
+
+`base` is `./` in the Vite config, so every asset path is relative and the app works at a
+domain root or in a subdirectory — a GitHub Pages project site at `/90srave/` needs no
+changes, sound-effects folder included.
+
+`.github/workflows/deploy.yml` publishes to GitHub Pages on every push to `main`. It needs
+one manual step first: **Settings → Pages → Source: GitHub Actions**.
+
+The FLAC worker's `.wasm` is served as a plain file. Hosts generally send it as
+`application/wasm`; on one that does not, libflac falls back to an XHR fetch, and if that
+fails too the export falls back to WAV and says so rather than breaking.
+
+There is no service worker, so the app is only as offline-capable as the browser's HTTP
+cache makes it.
 
 ## Browser support
 
