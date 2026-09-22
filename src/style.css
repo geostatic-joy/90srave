@@ -1,13 +1,34 @@
+/*
+ * Acid house / rave flyer palette: near-black with a violet cast, acid
+ * yellow-green as the signature, hot magenta and cyan for everything else.
+ * The waveform reads these too (see ui/waveform.ts), so the palette lives here
+ * and nowhere else.
+ */
 :root {
-  --bg: #0e0b16;
-  --bg-panel: #181327;
-  --bg-input: #221b36;
-  --fg: #ece8f6;
-  --fg-dim: #a79fc4;
-  --accent: #ff5ea8;
-  --accent-2: #4be0d0;
-  --border: #322a4d;
-  --danger: #ff6b6b;
+  --bg: #05010d;
+  --bg-panel: #130a24;
+  --bg-input: #1d0f35;
+  --fg: #f4eeff;
+  --fg-dim: #a98fd6;
+  --acid: #ccff00;
+  --magenta: #ff00a8;
+  /* Lifted for small text: #ff00a8 sits right on the 4.5:1 line at 11px. */
+  --magenta-text: #ff63c8;
+  --cyan: #00f5ff;
+  --violet: #9d00ff;
+  --border: #3d1a66;
+  --danger: #ff3b5c;
+
+  /* Aliases kept so the rest of the sheet reads in roles, not colours. */
+  --accent: var(--magenta);
+  --accent-2: var(--cyan);
+
+  /* Waveform, read from JS. */
+  --wave: #6b3fb8;
+  --wave-played: #9d6ae0;
+  --wave-cursor: #ccff00;
+  --wave-region: rgba(255, 0, 168, 0.28);
+
   color-scheme: dark;
 }
 
@@ -23,7 +44,12 @@
 
 body {
   margin: 0;
-  background: radial-gradient(circle at 20% -10%, #2a1b45 0%, var(--bg) 55%) fixed;
+  /* Three coloured lights over black, the way a flyer gets printed. */
+  background:
+    radial-gradient(60vw 60vw at 12% -12%, rgba(157, 0, 255, 0.5), transparent 70%),
+    radial-gradient(50vw 50vw at 92% 4%, rgba(255, 0, 168, 0.32), transparent 70%),
+    radial-gradient(70vw 50vw at 50% 104%, rgba(0, 245, 255, 0.18), transparent 70%), var(--bg);
+  background-attachment: fixed;
   color: var(--fg);
   font:
     15px/1.5 system-ui,
@@ -41,12 +67,17 @@ body {
 
 .app-header h1 {
   margin: 0;
-  font-size: 30px;
-  letter-spacing: 0.02em;
-  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  font-size: clamp(38px, 9vw, 64px);
+  font-style: italic;
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  background: linear-gradient(96deg, var(--acid) 0%, var(--cyan) 38%, var(--magenta) 72%, var(--acid) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  filter: drop-shadow(0 0 22px rgba(255, 0, 168, 0.45));
 }
 
 .tagline {
@@ -56,19 +87,22 @@ body {
 }
 
 .panel {
-  background: var(--bg-panel);
+  background: color-mix(in srgb, var(--bg-panel) 82%, transparent);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 16px;
   margin-bottom: 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .panel h2 {
   margin: 0 0 12px;
-  font-size: 16px;
+  font-size: 13px;
+  font-weight: 800;
+  font-style: italic;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--fg-dim);
+  letter-spacing: 0.18em;
+  color: var(--acid);
 }
 
 .drop-zone {
@@ -83,14 +117,17 @@ body {
 }
 
 .drop-zone--over {
-  border-color: var(--accent);
-  background: rgba(255, 94, 168, 0.08);
+  border-color: var(--acid);
+  background: rgba(204, 255, 0, 0.1);
 }
 
 .drop-zone__title {
   margin: 0 0 4px;
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 19px;
+  font-weight: 800;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .drop-zone__hint {
@@ -109,7 +146,8 @@ body {
 }
 
 .btn:hover:not(:disabled) {
-  border-color: var(--accent);
+  border-color: var(--acid);
+  color: var(--acid);
 }
 
 .btn:disabled {
@@ -117,10 +155,21 @@ body {
   cursor: not-allowed;
 }
 
+/* The acid smiley button: black on highlighter yellow-green. */
 .btn--primary {
-  background: linear-gradient(135deg, var(--accent), #b44bff);
+  background: linear-gradient(135deg, var(--acid), #7ef000);
   border-color: transparent;
-  font-weight: 600;
+  color: #0a0012;
+  font-weight: 800;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 18px rgba(204, 255, 0, 0.35);
+}
+
+.btn--primary:hover:not(:disabled) {
+  color: #0a0012;
+  filter: brightness(1.1);
 }
 
 .btn--tiny {
@@ -136,10 +185,11 @@ body {
 }
 
 .meta__grid dt {
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--fg-dim);
+  letter-spacing: 0.14em;
+  color: var(--cyan);
 }
 
 .meta__grid dd {
@@ -150,7 +200,7 @@ body {
 
 .waveform {
   position: relative;
-  background: #120e1f;
+  background: #0b0418;
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
@@ -162,7 +212,7 @@ body {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: rgba(9, 7, 16, 0.62);
+  background: rgba(5, 1, 13, 0.68);
   pointer-events: none;
   z-index: 1;
 }
@@ -172,16 +222,16 @@ body {
    border and background as inline styles. */
 .waveform ::part(region) {
   box-shadow:
-    inset 4px 0 0 0 var(--accent),
-    inset -4px 0 0 0 var(--accent),
-    0 0 14px rgba(255, 94, 168, 0.35);
+    inset 4px 0 0 0 var(--acid),
+    inset -4px 0 0 0 var(--acid),
+    0 0 18px rgba(204, 255, 0, 0.4);
 }
 
 /* The plugin sizes and colours its handles inline, hence !important. */
 .waveform ::part(region-handle) {
   width: 12px !important;
-  background: var(--accent) !important;
-  border-color: var(--accent-2) !important;
+  background: var(--acid) !important;
+  border-color: var(--magenta) !important;
   border-width: 3px !important;
 }
 
@@ -213,10 +263,11 @@ body {
 
 .time-field label {
   display: block;
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--fg-dim);
+  letter-spacing: 0.14em;
+  color: var(--cyan);
   margin-bottom: 4px;
 }
 
@@ -233,12 +284,12 @@ select {
 
 input[type='text']:read-only {
   color: var(--fg-dim);
-  background: #1b1630;
+  background: #160b28;
 }
 
 input[type='text']:focus,
 select:focus {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--cyan);
   outline-offset: 1px;
 }
 
@@ -264,7 +315,7 @@ select:focus {
 }
 
 .check input {
-  accent-color: var(--accent);
+  accent-color: var(--magenta);
   width: 16px;
   height: 16px;
 }
@@ -291,10 +342,11 @@ select:focus {
 }
 
 .fieldset legend {
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--fg-dim);
+  letter-spacing: 0.14em;
+  color: var(--magenta-text);
   padding: 0 4px;
 }
 
@@ -305,10 +357,11 @@ select:focus {
 
 .style-field label {
   display: block;
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--fg-dim);
+  letter-spacing: 0.14em;
+  color: var(--cyan);
   margin-bottom: 4px;
 }
 
@@ -327,7 +380,7 @@ select:focus {
 .slider-row input[type='range'] {
   flex: 1;
   min-width: 140px;
-  accent-color: var(--accent);
+  accent-color: var(--acid);
 }
 
 .slider-row output {
@@ -353,12 +406,12 @@ select:focus {
 }
 
 .status--ok {
-  color: var(--accent-2);
+  color: var(--acid);
 }
 
 progress {
   width: 160px;
-  accent-color: var(--accent);
+  accent-color: var(--acid);
 }
 
 .app-footer {
