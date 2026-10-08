@@ -120,15 +120,9 @@ export class WaveformView {
     wavesurfer.on('interaction', (time: number) => {
       this.handlers.onSeek(time)
     })
-    // Clicks inside the region are swallowed by the region element, so turn
-    // those into a seek too — the whole waveform should be clickable.
-    regions.on('region-clicked', (region, event) => {
-      if (region.id !== REGION_ID) return
-      const bounds = this.container.getBoundingClientRect()
-      if (bounds.width <= 0) return
-      const ratio = (event.clientX - bounds.left) / bounds.width
-      this.handlers.onSeek(Math.max(0, Math.min(1, ratio)) * this.duration)
-    })
+    // Clicks on the region bubble to the waveform, so wavesurfer's own
+    // 'interaction' already covers them. Handling 'region-clicked' as well
+    // seeks twice per click, which races two playbacks into life.
   }
 
   /** Push a selection into the region without echoing a change event back. */

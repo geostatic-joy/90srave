@@ -40,6 +40,31 @@ function section(title) {
 
 const browser = await chromium.launch()
 const page = await browser.newPage({ acceptDownloads: true })
+
+// Track every audible source node, so overlapping playback is measurable.
+// OfflineAudioContext nodes are renders, not sound, so they are skipped.
+await page.addInitScript(() => {
+  window.__audible = []
+  let id = 0
+  const start = AudioBufferSourceNode.prototype.start
+  const stop = AudioBufferSourceNode.prototype.stop
+  AudioBufferSourceNode.prototype.start = function (...args) {
+    if (!(this.context instanceof OfflineAudioContext)) {
+      this.__id = ++id
+      const record = { id: this.__id, stopCalls: 0, ended: false }
+      window.__audible.push(record)
+      this.addEventListener('ended', () => {
+        record.ended = true
+      })
+    }
+    return start.apply(this, args)
+  }
+  AudioBufferSourceNode.prototype.stop = function (...args) {
+    const record = this.__id && window.__audible.find((n) => n.id === this.__id)
+    if (record) record.stopCalls++
+    return stop.apply(this, args)
+  }
+})
 const pageErrors = []
 page.on('pageerror', (error) => pageErrors.push(String(error)))
 page.on('console', (message) => {
@@ -307,6 +332,45 @@ check(
 )
 await page.click('#stop')
 check('stop ends the audition', (await page.textContent('#preview-status')) === '')
+
+// Re-measured per click: clicking the preview buttons can scroll the page,
+// which would leave a cached box pointing at the wrong place.
+const clickWaveform = async (ratio) => {
+  const box = await page.locator('#waveform').boundingBox()
+  await page.mouse.click(box.x + box.width * ratio, box.y + box.height / 2)
+}
+
+// Regression: clicks on the region used to seek twice (wavesurfer's own
+// handler plus ours), racing two playbacks into life across the await in
+// play(). One would be orphaned, so Stop could not silence it.
+const audible = () => page.evaluate(() => window.__audible.map((n) => ({ ...n })))
+const resetAudible = () => page.evaluate(() => (window.__audible.length = 0))
+
+await resetAudible()
+await clickWaveform(0.3) // inside the window
+await page.waitForTimeout(500)
+check(
+  'one click inside the window starts one playback',
+  (await audible()).length === 1,
+  `${(await audible()).length} started`,
+)
+
+await resetAudible()
+for (const ratio of [0.2, 0.8, 0.35, 0.9, 0.5]) await clickWaveform(ratio)
+await page.waitForTimeout(900)
+await page.click('#stop')
+await page.waitForTimeout(600)
+const after = await audible()
+check(
+  'Stop silences every playback, even after rapid clicking',
+  after.every((node) => node.ended),
+  `${after.filter((n) => !n.ended).length} of ${after.length} still sounding`,
+)
+check(
+  'rapid clicking starts one playback per click',
+  after.length === 5,
+  `${after.length} started from 5 clicks`,
+)
 
 // ------------------------------------------------------------------ export
 
