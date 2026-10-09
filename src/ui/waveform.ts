@@ -13,6 +13,22 @@ export interface WaveformHandlers {
 
 const REGION_ID = 'selection'
 
+/**
+ * The waveform's colours live in style.css with the rest of the palette, so
+ * there is one place to restyle. Fallbacks cover a stylesheet that has not
+ * applied yet.
+ */
+function readPalette(): { wave: string; played: string; cursor: string; region: string } {
+  const styles = getComputedStyle(document.documentElement)
+  const read = (name: string, fallback: string) => styles.getPropertyValue(name).trim() || fallback
+  return {
+    wave: read('--wave', '#6b3fb8'),
+    played: read('--wave-played', '#9d6ae0'),
+    cursor: read('--wave-cursor', '#ccff00'),
+    region: read('--wave-region', 'rgba(255, 0, 168, 0.28)'),
+  }
+}
+
 /** Peaks for the waveform display, mirroring wavesurfer's own exportPeaks(). */
 function computePeaks(buffer: AudioBuffer, maxLength = 8000): number[][] {
   const channels = Math.min(2, buffer.numberOfChannels)
@@ -52,15 +68,16 @@ export class WaveformView {
     this.destroy()
     this.duration = buffer.duration
 
+    const palette = readPalette()
     const regions = RegionsPlugin.create()
     const wavesurfer = WaveSurfer.create({
       container: this.container,
       height: 120,
-      waveColor: '#6c5f9c',
+      waveColor: palette.wave,
       // Only a shade brighter: a big progress fill would read as a second
       // selection now that the playhead roams the whole track.
-      progressColor: '#8d7fc4',
-      cursorColor: '#4be0d0',
+      progressColor: palette.played,
+      cursorColor: palette.cursor,
       cursorWidth: 2,
       normalize: true,
       interact: true,
@@ -84,7 +101,7 @@ export class WaveformView {
       drag: true,
       resize: resizable,
       minLength: MIN_LENGTH,
-      color: 'rgba(255, 94, 168, 0.26)',
+      color: palette.region,
     })
 
     // Shade everything outside the selection, so the window reads at a glance.
@@ -103,15 +120,9 @@ export class WaveformView {
     wavesurfer.on('interaction', (time: number) => {
       this.handlers.onSeek(time)
     })
-    // Clicks inside the region are swallowed by the region element, so turn
-    // those into a seek too — the whole waveform should be clickable.
-    regions.on('region-clicked', (region, event) => {
-      if (region.id !== REGION_ID) return
-      const bounds = this.container.getBoundingClientRect()
-      if (bounds.width <= 0) return
-      const ratio = (event.clientX - bounds.left) / bounds.width
-      this.handlers.onSeek(Math.max(0, Math.min(1, ratio)) * this.duration)
-    })
+    // Clicks on the region bubble to the waveform, so wavesurfer's own
+    // 'interaction' already covers them. Handling 'region-clicked' as well
+    // seeks twice per click, which races two playbacks into life.
   }
 
   /** Push a selection into the region without echoing a change event back. */
